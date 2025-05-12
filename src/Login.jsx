@@ -37,7 +37,7 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h1>ZEUS</h1>
+        <h1>🔥ZEUS🔥</h1>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
