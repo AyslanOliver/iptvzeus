@@ -14,18 +14,32 @@ function Login() {
     setLoading(true);
     setError('');
 
-    const urlM3U = `https://nxczs.top/get.php?username=${username}&password=${password}&type=m3u_plus&output=m3u8`;
-    const m3uLink = await fetch(urlM3U, { 
-      method: 'GET',
-      mode: 'no-cors'
-    }).then(response => response.text());
-    localStorage.setItem('m3uLink', m3uLink);
+    if (!username || !password) {
+      setError('Por favor preencha usuário e senha');
+      setLoading(false);
+      return;
+    }
 
-    localStorage.setItem('iptvUser', JSON.stringify({ username, password }));
-    navigate('/');
-    window.location.href = '/home';
+    try {
+      const urlM3U = `https://nxczs.top/get.php?username=${username}&password=${password}&type=m3u_plus&output=m3u8`;
+      const response = await fetch(urlM3U);
+      
+      if (!response.ok) throw new Error('Credenciais inválidas');
+      
+      const m3uLink = await response.text();
+      
+      if (!m3uLink.includes('EXTM3U')) {
+        throw new Error('Link M3U inválido');
+      }
 
-    setLoading(false);
+      localStorage.setItem('m3uLink', m3uLink);
+      localStorage.setItem('iptvUser', JSON.stringify({ username, password }));
+      navigate('/home');
+    } catch (err) {
+      setError(err.message || 'Erro ao conectar');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = (e) => {
