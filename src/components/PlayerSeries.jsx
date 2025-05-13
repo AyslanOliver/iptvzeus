@@ -23,7 +23,7 @@ function PlayerSeries({ series, onClose }) {
       const hls = new Hls();
       const videoElement = playerRef.current;
 
-      hls.loadSource(currentEpisodeData.url);
+      hls.loadSource(currentEpisodeData.url.replace('https://', 'http://'));
       hls.attachMedia(videoElement);
       videoElement.load();
 

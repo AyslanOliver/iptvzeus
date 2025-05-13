@@ -48,7 +48,7 @@ const channelsPerPage = 20;
     try {
       const userData = JSON.parse(localStorage.getItem('iptvUser'));
 
-      const response = await fetch(`/xmltv.php?username=${userData.username}&password=${userData.password}`);
+      const response = await fetch(`/xmltv.php?username=${userData.username}&password=${userData.password}`.replace('https://', 'http://'));
       const xmlData = await response.text();
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
@@ -73,137 +73,36 @@ const channelsPerPage = 20;
 
 useEffect(() => {
     const fetchChannels = async () => {
-      const MAX_RETRIES = 3;
-      const INITIAL_DELAY = 1000;
-      let retryCount = 0;
-      let controller = new AbortController();
+      try {
+        setLoading(true);
+        const userData = JSON.parse(localStorage.getItem('iptvUser'));
+        const response = await fetch(`http://nxczs.top/get.php?username=${userData.username}&password=${userData.password}&type=m3u_plus&output=m3u8`);
 
-      const fetchWithRetry = async (currentRetry) => {
-        try {
-          setLoading(true);
-          // Removi todas as referências ao AuthContext
-          const userData = JSON.parse(localStorage.getItem('iptvUser'));
-          const response = await fetch(`/get.php?username=${userData.username}&password=${userData.password}&type=m3u_plus&output=m3u8`);
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data = await response.text();
-          const lines = data.split('\n');
-          const processedChannels = [];
-          let currentChannel = null;
-
-          lines.forEach(line => {
-            line = line.trim();
-            if (line.startsWith('#EXTINF:')) {
-              const match = line.match(/tvg-id="([^"]*)".+tvg-logo="([^"]*)".+group-title="([^"]*)",(.+)/);
-              if (match) {
-                const rawCategory = match[3] || 'Geral';
-                // Padronização de categorias
-                const cleanedCategory = rawCategory
-                  .trim()
-                  .toUpperCase()
-                  .replace(/_|-/g, ' ')
-                  .replace(/\b(?:HD|FHD|UHD|4K|SD|HQ|DV|DUAL|\d{3,4}P?)\b/gi, '')
-                  .replace(/(?:\s{2,}|\||\.)/g, ' ')
-                  .trim();
-
-                const categoryMap = {
-                  'FILMES': ['CINEMA', 'FILME', 'MOVIE', 'STUDIO', 'PREMIERE'],
-                  'ESPORTES': ['ESPORTE', 'SPORT', 'FOOTBALL', 'FUTEBOL', 'NBA', 'UFC'],
-                  'INFANTIL': ['KIDS', 'INFANTIL', 'CARTOON', 'DISNEY', 'NICKELODEON'],
-                  'NOTÍCIAS': ['NEWS', 'JORNAL', 'CNN', 'GLOBO NEWS', 'BAND NEWS'],
-                  'MÚSICAS': ['MUSIC', 'MTV', 'VH1', 'CLIPES', 'SONGS'],
-                  'RELIGIOSO': ['GOSPEL', 'IGREJA', 'RELIGIAO', 'CATÓLICO', 'EVANGÉLICO']
-                };
-
-                let [mainCategory, subCategory] = cleanedCategory.split('|').map(s => s.trim());
-                let finalCategory = mainCategory;
-
-                for (const [mainCat, synonyms] of Object.entries(categoryMap)) {
-                  if (synonyms.some(s => mainCategory.includes(s))) {
-                    finalCategory = subCategory ? `${mainCat}: ${subCategory}` : mainCat;
-                    break;
-                  }
-                }
-
-                finalCategory = finalCategory.replace(/\b(?:AO VIVO|LIVE|TV)\b/gi, '').trim();
-                currentChannel = {
-                  id: match[1] || Math.random().toString(36).substr(2, 9),
-                  name: match[4].trim(),
-                  logo: match[2] || '/icons/tv-default.png',
-                  category: finalCategory
-                };
-              }
-            } else if (line.startsWith('http') && currentChannel) {
-              currentChannel.url = line;
-              processedChannels.push({...currentChannel});
-              currentChannel = null;
-            }
-          });
-
-          const categoriesMap = {};
-          const categories = [];
-
-          processedChannels.forEach(channel => {
-            const [mainCat, subCat] = channel.category.split(':').map(c => c.trim());
-            
-            if (!categories.includes(mainCat)) {
-              categories.push(mainCat);
-            }
-            
-            if (!categoriesMap[mainCat]) {
-              categoriesMap[mainCat] = {};
-            }
-            
-            const categoryKey = subCat || 'Geral';
-            if (!categoriesMap[mainCat][categoryKey]) {
-              categoriesMap[mainCat][categoryKey] = [];
-            }
-            
-            channel.categoryHierarchy = {
-              main: mainCat,
-              sub: categoryKey,
-              full: subCat ? `${mainCat}:${subCat}` : mainCat
-            };
-            
-            categoriesMap[mainCat][categoryKey].push(channel);
-          });
-
-          setCategories(['Favoritos', ...categories]);
-          setChannels(categoriesMap);
-          setVisibleChannels(Object.values(categoriesMap[selectedCategory] || {}).flat().slice(0, channelsPerPage));
-          setSelectedCategory(categories[0]);
-          setSelectedChannel(processedChannels[0]);
-          setLoading(false);
-          return;
-
-        } catch (err) {
-          if (err.name === 'AbortError') {
-            console.log('Request was aborted');
-          } else {
-            console.error(`Attempt ${retryCount + 1} failed:`, err);
-          }
-
-          if (currentRetry >= MAX_RETRIES - 1) {
-            console.error('Failed after maximum retries');
-            return;
-          }
-
-          await new Promise(resolve => setTimeout(resolve, INITIAL_DELAY * Math.pow(2, currentRetry)));
-          controller = new AbortController();
-          return fetchWithRetry(currentRetry + 1);
-        } finally {
-          setLoading(false);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+
+        const processedChannels = data.map(channel => ({
+          id: channel.stream_id,
+          name: channel.name,
+          logo: channel.stream_icon || '/icons/tv-default.png',
+          url: `http://nxczs.top/live/${userData.username}/${userData.password}/${channel.stream_id}.m3u8`,
+          category: channel.category_name || 'Geral'
+        }));
+
+        setChannels(processedChannels);
+        setCurrentChannel(processedChannels[0]);
+      } catch (err) {
+        console.error('Error fetching channels:', err);
+      } finally {
+        setLoading(false);
       }
-      
-      fetchWithRetry(0);
     };
 
     fetchChannels();
-  }, []);
+  }, [userData]);
 
   useEffect(() => {
     if (selectedChannel && selectedChannel.url) {
