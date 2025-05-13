@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: iptv-zeus
+    env: node
+    build:
+      dockerfile: Dockerfile
+    envVars:
+      - key: REACT_APP_DNS
+        value: your-backend-url
+      - key: REACT_APP_API_URL
+        value: your-api-endpoint
