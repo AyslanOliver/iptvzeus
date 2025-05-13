@@ -26,7 +26,7 @@ const channelsPerPage = 20;
     if (selectedCategory && channels[selectedCategory]) {
       setVisibleChannels(Object.values(channels[selectedCategory]).flat().slice(0, page * channelsPerPage));
     }
-  }, [selectedCategory, page, channels]);
+  }, [selectedCategory, page, channels, channelsPerPage]);
 
   useEffect(() => {
     const savedFavorites = localStorage.getItem('favoriteChannels');
@@ -72,14 +72,13 @@ const channelsPerPage = 20;
   }, []);
 
 useEffect(() => {
-
     const fetchChannels = async () => {
       const MAX_RETRIES = 3;
       const INITIAL_DELAY = 1000;
       let retryCount = 0;
       let controller = new AbortController();
 
-      while (retryCount < MAX_RETRIES) {
+      const fetchWithRetry = async (currentRetry) => {
         try {
           setLoading(true);
           const userData = JSON.parse(localStorage.getItem('iptvUser'));
@@ -193,79 +192,23 @@ useEffect(() => {
             console.error(`Attempt ${retryCount + 1} failed:`, err);
           }
 
-          if (retryCount >= MAX_RETRIES - 1) {
+          if (currentRetry >= MAX_RETRIES - 1) {
             console.error('Failed after maximum retries');
-            break;
+            return;
           }
 
-          await new Promise(resolve => setTimeout(resolve, INITIAL_DELAY * Math.pow(2, retryCount)));
-          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, INITIAL_DELAY * Math.pow(2, currentRetry)));
           controller = new AbortController();
+          return fetchWithRetry(currentRetry + 1);
         } finally {
           setLoading(false);
         }
       }
+      
+      fetchWithRetry(0);
     };
 
     fetchChannels();
-  }, []);
-
-  const parseM3U = (data) => {
-    const lines = data.split('\n');
-    const categories = [];
-    const channels = {};
-    const epg = {};
-    const channelUrls = {};
-
-    let currentCategory = '';
-    let currentChannelName = '';
-
-    lines.forEach((line, index) => {
-      line = line.trim();
-      
-      if (line.startsWith('#EXTGRP:')) {
-        currentCategory = line.replace('#EXTGRP:', '').trim();
-        if (!categories.includes(currentCategory)) {
-if (visibleChannels.length < Object.values(channels[selectedCategory] || {}).flat().length) {
-  return (
-    <div className="load-more-container">
-      <button className="load-more" onClick={loadMoreChannels}>
-        Carregar mais canais
-      </button>
-    </div>
-  );
-}
-
-          categories.push(currentCategory);
-          channels[currentCategory] = [];
-        }
-      } else if (line.startsWith('#EXTINF:')) {
-        const channelInfo = line.split(',');
-        currentChannelName = channelInfo[1].trim();
-        if (currentCategory) {
-
-          channels[currentCategory].push(currentChannelName);
-          epg[currentChannelName] = channelInfo[2] || 'Programação não disponível';
-        }
-      } else if (line.startsWith('http')) {
-        if (currentChannelName) {
-
-          channelUrls[currentChannelName] = line;
-        }
-      }
-    });
-
-    return { categories, channels, epg, channelUrls };
-  };
-
-  useEffect(() => {
-    if (selectedCategory && channels[selectedCategory]) {
-      setVisibleChannels(Object.values(channels[selectedCategory]).flat().slice(0, page * channelsPerPage));
-    }
-  }, [selectedCategory, page, channels]);
-
-  useEffect(() => {
-    fetchEPG();
   }, []);
 
   useEffect(() => {
@@ -299,10 +242,6 @@ if (visibleChannels.length < Object.values(channels[selectedCategory] || {}).fla
     setSelectedChannel(null); // Reseta o canal selecionado ao mudar de categoria
   };
 
-  const handleChannelSelect = (channel) => {
-    setSelectedChannel(channel);
-  };
-
   if (loading) {
     return <div className="loading">Carregando canais...</div>;
   }
@@ -313,9 +252,11 @@ if (visibleChannels.length < Object.values(channels[selectedCategory] || {}).fla
       <div className="categories">
         {categories.map((category) => (
           <a
-            key={`cat-${category}`}
+            key={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
             className={`category-button ${selectedCategory === category ? 'active' : ''}`}
             onClick={() => handleCategorySelect(category)}
+            role="button"
+            tabIndex={0}
           >
             {category}
           </a>
@@ -327,22 +268,25 @@ if (visibleChannels.length < Object.values(channels[selectedCategory] || {}).fla
         {selectedCategory && visibleChannels.length > 0 && (
           <>
             {visibleChannels.map(channel => (
-              <div
-                key={channel.id}
-                className={`channel-item ${selectedChannel?.id === channel.id ? 'active' : ''}`}
-                onClick={() => handleChannelSelect(channel)}
+              <div 
+                key={`${channel.id}-${channel.categoryHierarchy.full}`} 
+                className="channel-card"
+                onClick={() => setSelectedChannel(channel)}
               >
                 <img src={channel.logo} alt={channel.name} className="channel-logo" />
-                <div className="channel-name">{channel.name}</div>
-                <button
-                  className="favorite-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(channel);
-                  }}
-                >
-                  {favoriteChannels.includes(channel.id) ? <FaHeart /> : <FaRegHeart />}
-                </button>
+                <div className="channel-info">
+                  <h3 className="channel-title">{channel.name}</h3>
+                  <p className="channel-category">{channel.category}</p>
+                  <button
+                    className="favorite-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(channel);
+                    }}
+                  >
+                    {favoriteChannels.includes(channel.id) ? <FaHeart /> : <FaRegHeart />}
+                  </button>
+                </div>
               </div>
             ))}
             {visibleChannels.length < Object.values(channels[selectedCategory] || {}).flat().length && (

@@ -14,7 +14,6 @@ function Login() {
     setLoading(true);
     setError('');
 
-    const dns = 'http://nxczs.top'; // 🔥 Trocar pelo DNS do seu servidor
     const urlM3U = `http://nxczs.top/get.php?username=${username}&password=${password}&type=m3u_plus&output=m3u8`;
     const m3uLink = await fetch(urlM3U, { 
       method: 'GET',

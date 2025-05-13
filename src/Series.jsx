@@ -1,196 +1,244 @@
-import { useState, useEffect, useRef } from 'react';
-import Hls from 'hls.js';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import PlayerSeries from './components/PlayerSeries';
 import './Series.css';
-import { FaHeart, FaRegHeart } from 'react-icons/fa';
 
-function Series() {
-  const [selectedSeries, setSelectedSeries] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+const USERNAME = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).username : '';
+const PASSWORD = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).password : '';
+const DNS = 'http://nxczs.top';
+
+const Series = () => {
+  const navigate = useNavigate();
+  const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const playerRef = useRef(null);
+  const [error, setError] = useState(null);
+  const [selectedSeries, setSelectedSeries] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [selectedEpisode, setSelectedEpisode] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [seriesData, setSeriesData] = useState([]);
-  const [visibleSeries, setVisibleSeries] = useState([]);
-  const [page, setPage] = useState(1);
-  const seriesPerPage = 20;
-  const [favoriteSeries, setFavoriteSeries] = useState([]);
-
-  const [categories, setCategories] = useState(['all']);
-
-  const filteredSeries = seriesData.filter(serie => {
-    const matchesSearch = serie.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || serie.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
+  // Load categories
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('favoriteSeries');
-    if (savedFavorites) {
-      setFavoriteSeries(JSON.parse(savedFavorites));
+    const loadCategories = async () => {
+      try {
+        const response = await fetch(
+          `${DNS}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_series_categories`
+        );
+        
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        
+        const data = await response.json();
+        setCategories(data);
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      }
+    };
+
+    if (USERNAME && PASSWORD) {
+      loadCategories();
     }
   }, []);
 
-  useEffect(() => {
-    setSelectedCategory('all');
-  }, []);
-
-  const toggleFavorite = (series) => {
-    const newFavorites = favoriteSeries.includes(series.id)
-      ? favoriteSeries.filter(id => id !== series.id)
-      : [...favoriteSeries, series.id];
-    
-    setFavoriteSeries(newFavorites);
-    localStorage.setItem('favoriteSeries', JSON.stringify(newFavorites));
-  };
-
-  const loadMoreSeries = () => {
-    setPage(prev => prev + 1);
-  };
-
-  useEffect(() => {
-    const start = 0;
-    const end = page * seriesPerPage;
-    setVisibleSeries(filteredSeries.slice(start, end));
-  }, [page, filteredSeries]);
-
+  // Modified series loading to include category filtering
   useEffect(() => {
     const loadSeries = async () => {
-      setLoading(true);
+      if (!USERNAME || !PASSWORD) {
+        setError('Credenciais não encontradas');
+        setLoading(false);
+        return;
+      }
+
+      const MAX_RETRIES = 3;
+      let retryCount = 0;
+      let data;
+      
+      while (retryCount < MAX_RETRIES) {
+        try {
+          const categoryParam = selectedCategory !== 'all' ? `&category_id=${selectedCategory}` : '';
+          const response = await fetch(
+            `${DNS}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_series${categoryParam}`,
+            {
+              signal: AbortSignal.timeout(10000) // Timeout de 10 segundos
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Falha ao carregar séries: ${response.status} ${response.statusText}`);
+          }
+
+          const text = await response.text();
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            // Remove caracteres inválidos e tenta parsear novamente
+            const cleanText = text.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+            data = JSON.parse(cleanText);
+          }
+          
+          if (!data) {
+            throw new Error('Dados inválidos recebidos');
+          }
+          
+          // Se chegou aqui, a requisição foi bem sucedida
+          break;
+          
+        } catch (err) {
+          retryCount++;
+          console.error(`Tentativa ${retryCount} falhou:`, err);
+          
+          if (retryCount >= MAX_RETRIES) {
+            throw new Error(`Falha após ${MAX_RETRIES} tentativas: ${err.message}`);
+          }
+          
+          // Espera exponencial entre tentativas
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+        }
+      }
+
       try {
-        const userData = JSON.parse(localStorage.getItem('iptvUser'));
-        if (!userData) {
-          console.error('Usuário não autenticado');
-          setLoading(false);
-          return;
-        }
-        const response = await fetch(
-          `http://nxczs.top/get.php?username=${userData.username}&password=${userData.password}&type=m3u_plus&output=m3u8`,
-          { timeout: 10000 }
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const m3uContent = await response.text();
-        const series = parseSeries(m3uContent);
-        setSeriesData(series);
-        // Atualiza categorias dinamicamente
-        const cats = Array.from(new Set(series.map(s => s.category).filter(Boolean)));
-        setCategories(['all', ...cats]);
-      } catch (error) {
-        console.error('Erro ao carregar séries:', error);
+        // Process all series without limit
+        const seriesArray = Array.isArray(data) ? data : Object.values(data);
+        const validSeries = seriesArray
+          .filter(item => item && item.name && item.series_id)
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        console.log('Total series loaded:', validSeries.length);
+        setSeries(validSeries);
+        setError(null); // Limpa erros anteriores se a requisição for bem-sucedida
+      } catch (err) {
+        console.error('Error loading series:', err);
+        setError(`Erro ao carregar séries: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
-    loadSeries();
-  }, []);
 
-  const parseSeries = (m3uContent) => {
-    const lines = m3uContent.split('\n');
-    const series = [];
-    let currentSerie = null;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      const nextLine = i < lines.length - 1 ? lines[i + 1].trim() : '';
-      if (line.startsWith('#EXTINF')) {
-        const groupMatch = line.match(/group-title="([^"]+)"/i);
-        if (!groupMatch || !groupMatch[1].toLowerCase().includes('serie')) continue;
-        const titleMatch = line.match(/tvg-name="([^"]+)"/i);
-        const logoMatch = line.match(/tvg-logo="([^"]+)"/i);
-        if (titleMatch) {
-          // Extrai temporada e episódio se houver
-          const info = titleMatch[1].match(/(.+?)(?:\s+[Tt]?(\d+)[Ee](\d+))?$/);
-          const [, title, season = '1', episode = '1'] = info || [];
-          currentSerie = {
-            id: Math.random().toString(36).substr(2, 9),
-            title: title ? title.trim() : titleMatch[1],
-            image: logoMatch ? logoMatch[1] : 'https://via.placeholder.com/200x280',
-            category: groupMatch[1],
-            season: parseInt(season),
-            episode: parseInt(episode),
-            url: nextLine.startsWith('http') ? nextLine : null
-          };
-          if (currentSerie.url) {
-            let existing = series.find(s => s.title === currentSerie.title && s.category === currentSerie.category);
-            if (existing) {
-              existing.episodes = existing.episodes || [];
-              existing.episodes.push({ season: currentSerie.season, episode: currentSerie.episode, url: currentSerie.url });
-              existing.totalSeasons = Math.max(existing.totalSeasons || 1, currentSerie.season);
-              existing.totalEpisodes = (existing.episodes || []).length;
-            } else {
-              currentSerie.episodes = [{ season: currentSerie.season, episode: currentSerie.episode, url: currentSerie.url }];
-              currentSerie.totalSeasons = currentSerie.season;
-              currentSerie.totalEpisodes = 1;
-              series.push(currentSerie);
-            }
-          }
-        }
+    loadSeries();
+  }, [selectedCategory]);
+
+  const handleSeriesSelect = async (series) => {
+    try {
+      const response = await fetch(
+        `${DNS}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_series_info&series_id=${series.series_id}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch series info: ${response.status} ${response.statusText}`);
       }
+
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        // Remove caracteres inválidos e tenta parsear novamente
+        const cleanText = text.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+        data = JSON.parse(cleanText);
+      }
+
+      if (!data) {
+        throw new Error('Invalid series data received');
+      }
+
+      setSelectedSeries({ ...series, ...data });
+
+      // Select first season and episode
+      // Transformar os dados dos episódios para o formato esperado pelo PlayerSeries
+      if (data.episodes) {
+        const episodesList = [];
+        Object.entries(data.episodes).forEach(([season, episodes]) => {
+          episodes.forEach(episode => {
+            episodesList.push({
+              season: parseInt(season),
+              episode: episode.episode_num,
+              title: episode.title || `Episódio ${episode.episode_num}`,
+              url: episode.container_extension === 'm3u8' ? episode.direct_source : null
+            });
+          });
+        });
+        
+        const seriesData = {
+          title: series.name,
+          episodes: episodesList,
+          totalSeasons: Object.keys(data.episodes).length
+        };
+        
+        setSelectedSeries(seriesData);
+      }
+    } catch (err) {
+      console.error('Error fetching series info:', err);
+      setError(`Erro ao carregar informações da série: ${err.message}`);
     }
-    return series;
+  };
+
+  if (loading) {
+    return <div className="loading-container">Loading series...</div>;
+  }
+
+  if (error) {
+    return <div className="error-container">{error}</div>;
+  }
+
+  const handleEpisodeSelect = (episode) => {
+    setSelectedEpisode(episode);
+    setIsPlaying(true);
   };
 
   return (
-    <div className="series-page">
+    <div className="series-container">
       <div className="series-header">
         <h1>Séries</h1>
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Buscar séries..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="category-filter">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="category-select"
+          >
+            <option value="all">Todas as Categorias</option>
+            {categories.map((category) => (
+              <option key={category.category_id} value={category.category_id}>
+                {category.category_name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-      <div className="categories">
-        {categories.map(category => (
-          <button
-            key={category}
-            className={`category-button ${selectedCategory === category ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(category)}
+      <div className="series-list">
+        {series.map((serie) => (
+          <div
+            key={serie.series_id}
+            className="series-item"
+            onClick={() => handleSeriesSelect(serie)}
           >
-            {category.charAt(0).toUpperCase() + category.slice(1)}
-          </button>
+            <img src={serie.cover} alt={serie.name} />
+            <span>{serie.name}</span>
+          </div>
         ))}
       </div>
-      {loading ? (
-        <div style={{ textAlign: 'center', marginTop: 40 }}>
-          <span>Carregando séries...</span>
-        </div>
-      ) : (
-        <div className="series-grid">
-          {visibleSeries.map(serie => (
-            <div key={serie.id} className="serie-card">
-              <img src={serie.image} alt={serie.title} className="serie-image" />
-              <div className="serie-info">
-                <h3 className="serie-title">{serie.title}</h3>
-                <div className="serie-details">
-                  <p>{serie.totalSeasons} Temporadas | {serie.totalEpisodes} Episódios</p>
-                </div>
-                <button
-                  className="favorite-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(serie);
-                  }}
-                >
-                  {favoriteSeries.includes(serie.id) ? <FaHeart /> : <FaRegHeart />}
-                </button>
+      {selectedSeries && (
+        <div className="series-details">
+          <h2>{selectedSeries.title}</h2>
+          <div className="episodes-list">
+            {selectedSeries.episodes && selectedSeries.episodes.map((ep, idx) => (
+              <div
+                key={idx}
+                className="episode-item"
+                onClick={() => handleEpisodeSelect(ep)}
+              >
+                <span>Temporada {ep.season} - Episódio {ep.episode}: {ep.title}</span>
               </div>
-            </div>
-          ))}
-          {visibleSeries.length < filteredSeries.length && (
-            <button className="load-more" onClick={loadMoreSeries}>
-              Carregar mais séries
-            </button>
-          )}
+            ))}
+          </div>
         </div>
+      )}
+      {isPlaying && selectedEpisode && (
+        <PlayerSeries episode={selectedEpisode} onClose={() => setIsPlaying(false)} />
       )}
     </div>
   );
-}
-  
-  export default Series;
+};
+
+export default Series;
   
