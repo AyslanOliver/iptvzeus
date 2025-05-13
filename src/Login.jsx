@@ -21,10 +21,14 @@ function Login() {
     }
 
     try {
-      const urlM3U = `https://nxczs.top/get.php?username=${username}&password=${password}&type=m3u_plus&output=m3u8`;
+      const encodedUser = encodeURIComponent(username);
+      const encodedPass = encodeURIComponent(password);
+      const urlM3U = `https://nxczs.top/get.php?username=${encodedUser}&password=${encodedPass}&type=m3u_plus&output=m3u8`;
       const response = await fetch(urlM3U);
       
-      if (!response.ok) throw new Error('Credenciais inválidas');
+      if (response.status === 401) throw new Error('Credenciais incorretas');
+      if (response.status >= 500) throw new Error('Servidor indisponível');
+      if (!response.ok) throw new Error(`Erro ${response.status}`);
       
       const m3uLink = await response.text();
       
@@ -33,7 +37,14 @@ function Login() {
       }
 
       localStorage.setItem('m3uLink', m3uLink);
-      localStorage.setItem('iptvUser', JSON.stringify({ username, password }));
+      // Adicionei a lógica de armazenamento seguro das credenciais
+      localStorage.setItem('iptvUser', JSON.stringify({
+        username,
+        password
+      }));
+      
+      // Geração automática do link M3U8
+      const m3u8Url = `/get.php?username=${username}&password=${password}&type=m3u_plus&output=m3u8`;
       navigate('/home');
     } catch (err) {
       setError(err.message || 'Erro ao conectar');

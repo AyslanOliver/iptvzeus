@@ -48,7 +48,7 @@ const channelsPerPage = 20;
     try {
       const userData = JSON.parse(localStorage.getItem('iptvUser'));
 
-      const response = await fetch(`http://zed7.top/xmltv.php?username=${userData.username}&password=${userData.password}`);
+      const response = await fetch(`/xmltv.php?username=${userData.username}&password=${userData.password}`);
       const xmlData = await response.text();
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
@@ -81,15 +81,9 @@ useEffect(() => {
       const fetchWithRetry = async (currentRetry) => {
         try {
           setLoading(true);
+          // Removi todas as referências ao AuthContext
           const userData = JSON.parse(localStorage.getItem('iptvUser'));
-
-          const response = await fetch(
-            `http://nxczs.top/get.php?username=${userData.username}&password=${userData.password}&type=m3u_plus&output=m3u8`,
-            {
-              signal: controller.signal,
-              timeout: 10000
-            }
-          );
+          const response = await fetch(`/get.php?username=${userData.username}&password=${userData.password}&type=m3u_plus&output=m3u8`);
 
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
