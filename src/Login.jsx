@@ -14,7 +14,7 @@ function Login() {
     setLoading(true);
     setError('');
 
-    const urlM3U = `http://nxczs.top/get.php?username=${username}&password=${password}&type=m3u_plus&output=m3u8`;
+    const urlM3U = `https://nxczs.top/get.php?username=${username}&password=${password}&type=m3u_plus&output=m3u8`;
     const m3uLink = await fetch(urlM3U, { 
       method: 'GET',
       mode: 'no-cors'
