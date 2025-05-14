@@ -144,6 +144,19 @@
   padding: 20px;
 }
 
+/* Loading e Error */
+.loading,
+.error {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: #ffffff;
+}
+
+.error {
+  color: #ff4444;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .filmes-header {

@@ -1,21 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Filmes.css';
+import PlayerFilmes from './components/PlayerFilmes';
 
 function Filmes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilme, setSelectedFilme] = useState(null);
-  const [filmes] = useState([
-    {
-      id: 1,
-      title: 'O Poderoso Chefão',
-      year: 1972,
-      duration: '2h 55min',
-      thumbnail: 'https://example.com/godfather.jpg',
-      categories: ['Crime', 'Drama'],
-      url: 'https://example.com/video/godfather.mp4'
-    },
-    // Adicione mais filmes aqui
-  ]);
+  const [filmes, setFilmes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchFilmes = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('iptvUser'));
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
+        const response = await fetch(`http://nxczs.top/player_api.php?username=${user.username}&password=${user.password}&action=get_vod_streams`);
+        if (!response.ok) {
+          throw new Error('Falha ao carregar filmes');
+        }
+
+        const data = await response.json();
+        setFilmes(data.map(filme => ({
+          id: filme.stream_id,
+          title: filme.name,
+          year: filme.year || 'N/A',
+          duration: filme.duration || 'N/A',
+          thumbnail: filme.stream_icon || 'https://via.placeholder.com/300x450',
+          categories: filme.category_id ? [filme.category_id] : [],
+          stream_id: filme.stream_id,
+          container_extension: filme.container_extension || 'mp4'
+        })));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFilmes();
+  }, []);
 
   const filteredFilmes = filmes.filter(filme =>
     filme.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -84,22 +110,9 @@ function Filmes() {
         ))}
       </div>
 
-      {selectedFilme && (
-        <div className="player-modal" onClick={handleClosePlayer}>
-          <div className="player-content" onClick={e => e.stopPropagation()}>
-            <video
-              className="player-video"
-              src={selectedFilme.url}
-              controls
-              autoPlay
-            />
-            <div className="player-info">
-              <h2>{selectedFilme.title}</h2>
-              <p>{selectedFilme.year} • {selectedFilme.duration}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {loading && <div className="loading">Carregando filmes...</div>}
+      {error && <div className="error">{error}</div>}
+      {selectedFilme && <PlayerFilmes movie={selectedFilme} onClose={handleClosePlayer} />}
     </div>
   );
 }
