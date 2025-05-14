@@ -154,13 +154,24 @@
 }
 
 .channel-logo {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  margin-right: 12px;
   object-fit: contain;
-  margin-right: 10px;
-  border-radius: 4px;
   background-color: rgba(255, 255, 255, 0.1);
-  padding: 2px;
+  transition: opacity 0.3s ease;
+}
+
+.channel-logo[loading] {
+  opacity: 0.6;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
 }
 
 .channel-name {

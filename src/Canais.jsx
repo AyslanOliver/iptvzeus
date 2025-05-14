@@ -16,13 +16,13 @@ const Canais = () => {
   // Categorias predefinidas
   const predefinedCategories = React.useMemo(() => [
     {
-      id: 'open',
-      name: 'Canais Abertos',
+      category_id: 'open',
+      category_name: 'Canais Abertos',
       subcategories: [
-        { id: 'globo', name: 'GLOBO' },
-        { id: 'sbt', name: 'SBT' },
-        { id: 'record', name: 'RECORD' },
-        { id: 'other_open', name: 'ABERTOS' }
+        { category_id: 'globo', category_name: 'GLOBO' },
+        { category_id: 'sbt', category_name: 'SBT' },
+        { category_id: 'record', category_name: 'RECORD' },
+        { category_id: 'other_open', category_name: 'ABERTOS' }
       ]
     },
   ], []);
@@ -49,7 +49,16 @@ const Canais = () => {
           throw new Error(`Falha ao carregar canais: ${response.status}`);
         }
 
-        const channels = await response.json();
+        let channels = await response.json();
+        
+        // Garantir que todos os canais tenham category_id
+        channels = channels.map(channel => ({
+          ...channel,
+          category_id: channel.category_id?.toString() || ''
+        }));
+        
+        console.log('Canais carregados:', channels);
+        console.log('Estrutura do primeiro canal:', channels[0]);
 
         const categoriesResponse = await fetch(
           `http://nxczs.top/player_api.php?username=${username}&password=${password}&action=get_live_categories`
@@ -59,10 +68,17 @@ const Canais = () => {
           throw new Error(`Falha ao carregar categorias: ${categoriesResponse.status}`);
         }
 
-        const categories = await categoriesResponse.json();
+        const apiCategories = await categoriesResponse.json();
+        console.log('Categorias da API:', apiCategories);
+        
+        // Formatar as categorias da API para corresponder à estrutura das predefinidas
+        const formattedApiCategories = apiCategories.map(cat => ({
+          category_id: cat.category_id,
+          category_name: cat.category_name
+        }));
         
         setChannels(channels);
-        setCategories([...predefinedCategories, ...categories]);
+        setCategories([...predefinedCategories, ...formattedApiCategories]);
         setLoading(false);
       } catch (err) {
         setError('Erro ao carregar os canais. Por favor, tente novamente.');
@@ -106,8 +122,34 @@ const Canais = () => {
   const filteredChannels = useCallback(() => {
     if (selectedCategory === 'all') return channels;
     if (selectedCategory === 'favorites') return favorites;
-    return channels.filter(channel => channel.category === selectedCategory);
-  }, [channels, selectedCategory, favorites]);
+    
+    // Verificar se é uma subcategoria dos canais abertos
+    const openCategory = predefinedCategories[0];
+    const isOpenSubcategory = openCategory.subcategories.some(sub => sub.category_id === selectedCategory);
+    
+    if (isOpenSubcategory) {
+      return channels.filter(channel => {
+        const channelName = channel.name.toUpperCase();
+        switch(selectedCategory) {
+          case 'globo':
+            return channelName.includes('GLOBO');
+          case 'sbt':
+            return channelName.includes('SBT');
+          case 'record':
+            return channelName.includes('RECORD');
+          case 'other_open':
+            return channelName.includes('BAND') || 
+                   channelName.includes('REDE TV') || 
+                   channelName.includes('TV CULTURA');
+          default:
+            return false;
+        }
+      });
+    }
+    
+    // Para outras categorias, usar o category_id da API
+    return channels.filter(channel => channel.category_id === selectedCategory);
+  }, [channels, selectedCategory, favorites, predefinedCategories]);
 
   // Gerenciar player HLS
   useEffect(() => {
@@ -173,13 +215,23 @@ const Canais = () => {
           Favoritos
         </button>
         {categories.map(category => (
-          <button
-            key={category.id}
-            className={`category-button ${selectedCategory === category.id ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(category.id)}
-          >
-            {category.name}
-          </button>
+          <React.Fragment key={category.category_id}>
+            <button
+              className={`category-button main-category ${selectedCategory === category.category_id ? 'active' : ''}`}
+              onClick={() => setSelectedCategory(category.category_id)}
+            >
+              {category.category_name}
+            </button>
+            {category.subcategories && category.subcategories.map(sub => (
+              <button
+                key={sub.category_id}
+                className={`category-button subcategory ${selectedCategory === sub.category_id ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(sub.category_id)}
+              >
+                {sub.category_name}
+              </button>
+            ))}
+          </React.Fragment>
         ))}
       </div>
 
@@ -199,6 +251,11 @@ const Canais = () => {
                 src={channel.logo}
                 alt={`${channel.name} logo`}
                 className="channel-logo"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel.name)}&background=random&color=fff&size=128`;
+                }}
+                loading="lazy"
               />
               <span className="channel-name">{channel.name}</span>
               <button
