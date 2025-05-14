@@ -4,7 +4,7 @@ import './Canais.css';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 
 function Canais() {
-
+  const [userData, setUserData] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,11 +12,19 @@ function Canais() {
 
   const [categories, setCategories] = useState([]);
   const [channels, setChannels] = useState({});
-const [visibleChannels, setVisibleChannels] = useState([]);
-const [page, setPage] = useState(1);
-const channelsPerPage = 20;
+  const [visibleChannels, setVisibleChannels] = useState([]);
+  const [page, setPage] = useState(1);
+  const channelsPerPage = 20;
   const [epg, setEpg] = useState({});
   const [favoriteChannels, setFavoriteChannels] = useState([]);
+  const [currentChannel, setCurrentChannel] = useState(null);
+
+  useEffect(() => {
+    const storedUserData = localStorage.getItem('iptvUser');
+    if (storedUserData) {
+      setUserData(JSON.parse(storedUserData));
+    }
+  }, []);
 
   const loadMoreChannels = () => {
     setPage(prev => prev + 1);
