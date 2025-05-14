@@ -53,9 +53,9 @@ function Canais() {
   };
 
   const fetchEPG = async () => {
+    if (!userData) return;
+    
     try {
-      const userData = JSON.parse(localStorage.getItem('iptvUser'));
-
       const response = await fetch(`/xmltv.php?username=${userData.username}&password=${userData.password}`.replace('https://', 'http://'));
       const xmlData = await response.text();
       const parser = new DOMParser();
@@ -70,46 +70,50 @@ function Canais() {
       });
       setEpg(epgData);
     } catch (error) {
-
       console.error('Erro ao carregar EPG:', error);
     }
   };
 
   useEffect(() => {
-    fetchEPG();
-  }, []);
+    if (userData) {
+      fetchEPG();
+    }
+  }, [userData]);
 
-useEffect(() => {
-    const fetchChannels = async () => {
-      try {
-        setLoading(true);
-        const userData = JSON.parse(localStorage.getItem('iptvUser'));
-        const response = await fetch(`http://nxczs.top/get.php?username=${userData.username}&password=${userData.password}&type=m3u_plus&output=m3u8`);
+  const fetchChannels = async () => {
+    if (!userData) return;
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+    try {
+      setLoading(true);
+      const response = await fetch(`http://nxczs.top/get.php?username=${userData.username}&password=${userData.password}&type=m3u_plus&output=m3u8`);
 
-        const data = await response.json();
-
-        const processedChannels = data.map(channel => ({
-          id: channel.stream_id,
-          name: channel.name,
-          logo: channel.stream_icon || '/icons/tv-default.png',
-          url: `http://nxczs.top/live/${userData.username}/${userData.password}/${channel.stream_id}.m3u8`,
-          category: channel.category_name || 'Geral'
-        }));
-
-        setChannels(processedChannels);
-        setCurrentChannel(processedChannels[0]);
-      } catch (err) {
-        console.error('Error fetching channels:', err);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
-    fetchChannels();
+      const data = await response.json();
+
+      const processedChannels = data.map(channel => ({
+        id: channel.stream_id,
+        name: channel.name,
+        logo: channel.stream_icon || '/icons/tv-default.png',
+        url: `http://nxczs.top/live/${userData.username}/${userData.password}/${channel.stream_id}.m3u8`,
+        category: channel.category_name || 'Geral'
+      }));
+
+      setChannels(processedChannels);
+      setCurrentChannel(processedChannels[0]);
+    } catch (err) {
+      console.error('Error fetching channels:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userData) {
+      fetchChannels();
+    }
   }, [userData]);
 
   useEffect(() => {
