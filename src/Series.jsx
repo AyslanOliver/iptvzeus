@@ -5,7 +5,7 @@ import './Series.css';
 
 const USERNAME = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).username : '';
 const PASSWORD = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).password : '';
-const DNS = 'https://nxczs.top';
+const DNS = 'http://nxczs.top';
 
 const Series = () => {
   const navigate = useNavigate();

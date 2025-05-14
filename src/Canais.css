@@ -28,64 +28,91 @@
 
 /* Categorias */
 .categories {
-  width: 180px;
-  min-width: 150px;
+  width: 200px;
+  min-width: 180px;
   background-color: #1e1e1e;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 15px;
+  border-radius: 12px;
   overflow-y: auto;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .category-button {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 8px 10px;
-  margin: 4px 0;
+  padding: 12px 15px;
   color: #ffffff;
   background-color: #2d2d2d;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
   cursor: pointer;
   text-align: left;
   font-weight: 500;
-  font-size: 0.85rem;
-  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
   position: relative;
+  letter-spacing: 0.3px;
 }
 
 .category-button:hover {
   background-color: #3d3d3d;
   transform: translateX(2px);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .category-button.active {
   background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  border-color: #64b5f6;
 }
 
 .category-button.main-category {
-  background: #2196f3;
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.95rem;
+  padding: 14px 15px;
 }
 
 .category-button.subcategory {
   background: #333;
-  padding-left: 20px;
-  font-size: 0.8rem;
+  padding-left: 25px;
+  font-size: 0.85rem;
+  border-left: 3px solid rgba(33, 150, 243, 0.5);
+  margin-left: 4px;
+  color: #e0e0e0;
+  font-weight: 400;
 }
 
 .category-button::after {
   content: '›';
   position: absolute;
-  right: 10px;
-  font-size: 1rem;
-  opacity: 0.7;
+  right: 15px;
+  font-size: 1.1rem;
+  opacity: 0.8;
+  transition: transform 0.3s ease;
+}
+
+.category-button:hover::after {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+.category-button.active::after {
+  transform: translateX(3px);
+  opacity: 1;
+  color: #fff;
 }
 
 /* Lista de Canais */
