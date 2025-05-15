@@ -15,8 +15,10 @@ function Home() {
   return (
     <div className="lobby-container">
       <div className="hero-section">
-        <h1>IPTV Zeus</h1>
-        <p className="hero-description">Acesso ilimitado a milhares de canais, filmes e séries</p>
+        <div className="hero-content">
+          <h1>IPTV Zeus</h1>
+          <p className="hero-description">Acesso ilimitado a milhares de canais, filmes e séries</p>
+        </div>
       </div>
       
       <div className="menu-options">

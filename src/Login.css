@@ -4,7 +4,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #000000;
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -17,70 +17,113 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://assets.nflxext.com/ffe/siteui/vlv3/00103100-5b45-4d4f-af32-342649f1bda5/4f0437a7-333c-42f9-801e-dce7a032c30c/BR-pt-20230821-popsignuptwoweeks-perspective_alpha_website_large.jpg');
+  background-size: cover;
+  background-position: center;
 }
 
 /* Caixa de login */
 .login-box {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 40px 30px;
-  border-radius: 15px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-  text-align: center;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 60px 68px;
+  border-radius: 4px;
+  text-align: left;
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
 }
 
 /* Título */
 .login-box h1 {
-  margin-bottom: 30px;
+  margin-bottom: 28px;
   color: #ffffff;
   font-size: 32px;
+  font-weight: 500;
 }
 
-/* Inputs */
+/* Input groups */
+.input-group {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.input-group i {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8c8c8c;
+  font-size: 16px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #8c8c8c;
+  cursor: pointer;
+  padding: 0;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+}
+
+.password-toggle:hover {
+  color: #ffffff;
+}
+
 .login-box input {
   width: 100%;
-  padding: 12px 20px;
-  margin: 10px 0;
+  padding: 16px 48px 16px 48px;
   border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  border-radius: 4px;
+  background: #333333;
+  color: #ffffff;
   font-size: 16px;
+  line-height: 1.5;
   outline: none;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .login-box input::placeholder {
-  color: #e0e0e0;
+  color: #8c8c8c;
 }
 
 .login-box input:focus {
-  background: rgba(255, 255, 255, 0.3);
+  background: #454545;
 }
 
 /* Botão */
 .login-box button {
   width: 100%;
-  padding: 12px;
-  margin-top: 20px;
+  padding: 16px;
+  margin-top: 24px;
   border: none;
-  border-radius: 8px;
-  background: #667eea;
-  color: #fff;
-  font-size: 18px;
+  border-radius: 4px;
+  background: #e50914;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.3s ease;
 }
 
 .login-box button:hover {
-  background: #5a67d8;
+  background: #f40612;
 }
 
 /* Mensagem de erro */
 .error {
-  margin-top: 15px;
-  color: #ff6b6b;
-  font-size: 14px;
+  margin-top: 16px;
+  color: #e87c03;
+  font-size: 13px;
 }

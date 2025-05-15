@@ -29,12 +29,12 @@
 
 .search-input {
   flex: 1;
-  padding: 10px 16px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background-color: #1e1e1e;
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .search-input:focus {
@@ -159,30 +159,82 @@
 
 /* Responsividade */
 @media (max-width: 768px) {
+  .filmes-page {
+    padding: 12px;
+  }
+
   .filmes-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .filmes-title {
+    font-size: 1.5rem;
+    text-align: center;
   }
 
   .search-bar {
     max-width: none;
   }
 
-  .filmes-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 16px;
-  }
-
-  .filme-info {
-    padding: 12px;
-  }
-
-  .filme-title {
+  .search-input {
+    padding: 8px 14px;
     font-size: 0.9rem;
   }
 
+  .filmes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .filme-card {
+    border-radius: 8px;
+  }
+
+  .filme-info {
+    padding: 10px;
+  }
+
+  .filme-title {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
   .filme-details {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filme-categories {
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .filme-category {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .filmes-page {
+    padding: 8px;
+  }
+
+  .filmes-title {
+    font-size: 1.25rem;
+  }
+
+  .filmes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+
+  .filme-card:hover {
+    transform: none;
   }
 }

@@ -95,10 +95,27 @@ const Canais = () => {
       if (selectedChannel) {
         try {
           const response = await fetch(`/api/epg/${selectedChannel.id}`);
+          
+          // Verificar se a resposta é válida
+          if (!response.ok) {
+            console.error('Falha ao carregar EPG:', response.status);
+            return;
+          }
+          
+          // Verificar tipo de conteúdo
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            console.error('Resposta do EPG não é JSON:', await response.text());
+            return;
+          }
+          
+          // Parsear resposta JSON
           const data = await response.json();
           setEpgData(data);
         } catch (err) {
           console.error('Erro ao carregar EPG:', err);
+          // Definir dados vazios em caso de erro
+          setEpgData({});
         }
       }
     };
@@ -215,7 +232,7 @@ const Canais = () => {
           Favoritos
         </button>
         {categories.map(category => (
-          <React.Fragment key={category.category_id}>
+          <React.Fragment key={`cat-${category.category_id}`}>
             <button
               className={`category-button main-category ${selectedCategory === category.category_id ? 'active' : ''}`}
               onClick={() => setSelectedCategory(category.category_id)}
@@ -241,14 +258,14 @@ const Canais = () => {
             Nenhum canal encontrado nesta categoria
           </div>
         ) : (
-          filteredChannels().map(channel => (
+          filteredChannels().map((channel, index) => (
             <div
-              key={channel.id}
+              key={`channel-${channel.id}-${index}`}
               className={`channel-item ${selectedChannel?.id === channel.id ? 'active' : ''}`}
               onClick={() => setSelectedChannel(channel)}
             >
               <img
-                src={channel.logo}
+                src={channel.stream_icon || channel.logo}
                 alt={`${channel.name} logo`}
                 className="channel-logo"
                 onError={(e) => {
