@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import Hls from 'hls.js';
 import './Canais.css';
+import Header from './components/Header';
 
 const Canais = () => {
   const [channels, setChannels] = useState([]);
@@ -168,7 +169,7 @@ const Canais = () => {
     return channels.filter(channel => channel.category_id === selectedCategory);
   }, [channels, selectedCategory, favorites, predefinedCategories]);
 
-  // Gerenciar player HLS
+  // Gerenciar player HLS com reconexão automática
   useEffect(() => {
     if (selectedChannel && Hls.isSupported()) {
       const username = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).username : '';
@@ -176,9 +177,44 @@ const Canais = () => {
       const streamUrl = `http://nxczs.top/live/${username}/${password}/${selectedChannel.stream_id}.m3u8`;
       
       const video = document.getElementById('channel-video');
-      const hls = new Hls();
-      hls.loadSource(streamUrl);
-      hls.attachMedia(video);
+      const hls = new Hls({
+        manifestLoadingMaxRetry: 10,
+        manifestLoadingRetryDelay: 500,
+        manifestLoadingMaxRetryTimeout: 30000,
+        levelLoadingMaxRetry: 10,
+        levelLoadingRetryDelay: 500,
+        levelLoadingMaxRetryTimeout: 30000,
+        fragLoadingMaxRetry: 10,
+        fragLoadingRetryDelay: 500,
+        fragLoadingMaxRetryTimeout: 30000
+      });
+
+      hls.on(Hls.Events.ERROR, function(event, data) {
+        if (data.fatal) {
+          switch(data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('Erro de rede, tentando reconectar...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('Erro de mídia, tentando recuperar...');
+              hls.recoverMediaError();
+              break;
+            default:
+              console.log('Erro fatal, reiniciando player...');
+              hls.destroy();
+              initPlayer();
+              break;
+          }
+        }
+      });
+
+      const initPlayer = () => {
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
+      };
+
+      initPlayer();
 
       return () => {
         hls.destroy();
@@ -218,7 +254,9 @@ const Canais = () => {
 
   return (
     <div className="container">
-      <div className="categories">
+      <Header />
+      <div className="content-wrapper">
+        <div className="categories">
         <button
           className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
           onClick={() => setSelectedCategory('all')}
@@ -294,6 +332,7 @@ const Canais = () => {
       </div>
 
       {renderCurrentChannel()}
+      </div>
     </div>
   );
 };

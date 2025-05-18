@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './Filmes.css';
 import PlayerFilmes from './components/PlayerFilmes';
 import Hls from 'hls.js';
+import Header from './Header';
 
 function Filmes() {
   const [searchTerm, setSearchTerm] = useState('');

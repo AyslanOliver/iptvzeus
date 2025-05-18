@@ -153,20 +153,69 @@ body {
   margin-top: 18px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) { /* Alinhando com outros breakpoints */
   .series-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    align-items: stretch; /* Esticar para ocupar a largura */
+    gap: 12px;
+  }
+  .series-header h1 {
+    font-size: 1.6rem; /* Ajuste de fonte */
+  }
+  .category-select {
+    font-size: 0.95rem;
+    padding: 8px 12px; /* Melhor área de toque */
   }
   .series-list {
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Cards um pouco maiores */
+    gap: 12px;
+  }
+  .series-item {
+    padding: 10px;
+  }
+  .series-item img {
+    max-width: 90px; /* Ajuste de imagem */
+    height: 130px;
+  }
+  .series-item span {
+    font-size: 0.9rem;
   }
   .series-details {
-    padding: 8px 2px 6px 2px;
+    padding: 12px;
+  }
+  .series-details h2 {
+    font-size: 1.1rem;
+  }
+  .episode-item {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
   .player-series-container {
-    padding: 6px 1px 6px 1px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .series-header h1 {
+    font-size: 1.4rem;
+  }
+  .category-select {
+    font-size: 0.9rem;
+    padding: 7px 10px;
+  }
+  .series-list {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+  }
+  .series-item img {
+    max-width: 80px;
+    height: 120px;
+  }
+  .series-item span {
+    font-size: 0.85rem;
+  }
+  .episode-item {
+    font-size: 0.85rem;
+    padding: 8px 10px;
   }
 }

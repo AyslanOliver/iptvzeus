@@ -1,12 +1,19 @@
 /* Canais.css */
 .container {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 12px;
   min-height: 100vh;
   background-color: #121212;
   overflow: hidden;
   position: relative;
+}
+
+.content-wrapper {
+  display: flex;
+  gap: 12px;
+  flex: 1;
 }
 
 /* Loading */
@@ -307,95 +314,138 @@
   background: #4d4d4d;
 }
 
-/* Responsividade */
-@media (max-width: 1200px) {
-  .player-container {
-    width: 500px;
-    min-width: 360px;
-  }
-
-  .channel-list {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  }
-}
-
-@media (max-width: 992px) {
+@media (max-width: 768px) {
   .container {
     flex-direction: column;
-    height: auto;
-    overflow: visible;
-    padding: 10px;
-  }
-
-  .categories {
-    width: 100%;
-    height: auto;
-    max-height: 160px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .player-container {
-    width: 100%;
-    min-width: auto;
-    order: -1;
-  }
-
-  .channel-list {
-    height: auto;
-    max-height: 360px;
-    min-height: 260px;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
-}
-
-@media (max-width: 576px) {
-  .container {
-    padding: 6px;
-    gap: 6px;
+    padding: 10px; /* Aumentado padding */
   }
 
   .categories,
-  .channel-list,
-  .player-container {
-    padding: 8px;
-    border-radius: 4px;
+  .channel-list {
+    width: 100%;
+    height: auto;
+    max-height: 45vh; /* Aumentada altura máxima */
+    box-sizing: border-box;
   }
 
-  .category-button,
+  .categories {
+    margin-bottom: 10px;
+    padding: 12px;
+  }
+
+  .category-button {
+    padding: 12px 15px; /* Aumentado padding */
+    font-size: 0.9rem;
+  }
+
+  .category-button.main-category {
+    font-size: 0.95rem;
+    padding: 14px 15px;
+  }
+
+  .channel-list {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* Ajustado minmax */
+    gap: 10px;
+  }
+
   .channel-item {
-    padding: 8px;
-    margin: 3px 0;
-    font-size: 0.85rem;
+    height: 55px; /* Aumentada altura */
+    padding: 10px;
   }
 
   .channel-logo {
-    width: 28px;
-    height: 28px;
-    margin-right: 6px;
+    width: 35px;
+    height: 35px;
+    margin-right: 10px;
+  }
+
+  .channel-name {
+    font-size: 0.85rem;
+  }
+
+  .video-player-section {
+    width: 100%;
+    height: auto;
+    min-height: 280px; /* Aumentada altura mínima para o player */
+    margin-top: 10px;
+    box-sizing: border-box;
+  }
+
+  .video-player-container {
+    border-radius: 10px;
+  }
+
+  .player-controls button {
+    font-size: 1.1rem;
+    padding: 8px 12px;
+  }
+
+  .epg-section {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .epg-item {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 8px;
+  }
+  .categories {
+    max-height: 35vh;
+    padding: 10px;
+  }
+
+  .category-button {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .category-button.main-category {
+    font-size: 0.9rem;
+    padding: 12px 15px;
+  }
+
+  .channel-list {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Ajustado para telas bem pequenas */
+    gap: 8px;
+  }
+
+  .channel-item {
+    flex-direction: row;
+    height: auto;
+    min-height: 50px;
+    padding: 8px;
+  }
+
+  .channel-logo {
+    width: 30px;
+    height: 30px;
   }
 
   .channel-name {
     font-size: 0.8rem;
+    white-space: normal;
   }
 
-  .channel-info h3 {
-    font-size: 0.95rem;
+  .video-player-section {
+    min-height: 220px;
   }
 
-  .epg {
-    font-size: 0.8rem;
+  .player-controls button {
+    font-size: 1rem;
+    padding: 6px 10px;
+  }
+
+  .epg-item {
     padding: 8px;
-    margin-top: 8px;
-  }
-
-  #player {
-    margin-bottom: 10px;
-  }
-
-  .channel-list {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    font-size: 0.8rem;
   }
 }
   

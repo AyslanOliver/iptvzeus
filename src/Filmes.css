@@ -198,45 +198,78 @@
   }
   .filmes-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 10px;
-    padding: 8px 0;
-    width: 100%;
+    gap: 12px;
   }
   .filme-card {
     border-radius: 8px;
   }
   .filme-info {
-    padding: 10px;
+    padding: 12px;
   }
   .filme-title {
-    font-size: 0.85rem;
-    margin-bottom: 6px;
+    font-size: 0.9rem;
   }
   .filme-details {
     font-size: 0.75rem;
     gap: 8px;
-    flex-wrap: wrap;
-  }
-  .filme-categories {
-    gap: 6px;
-    margin-top: 6px;
   }
   .filme-category {
     font-size: 0.7rem;
     padding: 3px 6px;
   }
+  .player-content {
+    width: 95%;
+  }
+  .player-info {
+    padding: 12px;
+  }
 }
+
 @media (max-width: 480px) {
   .filmes-page {
     padding: 8px;
   }
+  .filmes-header {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
   .filmes-title {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
+  }
+  .search-bar {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .search-input {
+    padding: 8px 12px; /* Aumentado padding para melhor toque */
+    font-size: 0.9rem;
   }
   .filmes-grid {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+  .filme-card {
+    border-radius: 6px;
+  }
+  .filme-info {
+    padding: 8px;
+  }
+  .filme-title { /* Referente ao título dentro do card */
+    font-size: 0.85rem; /* Aumentado */
+  }
+  .filme-details {
+    font-size: 0.75rem; /* Aumentado */
     gap: 6px;
-    width: 100%;
+  }
+  .filme-category {
+    font-size: 0.7rem; /* Aumentado */
+    padding: 3px 6px; /* Ajustado padding */
+  }
+  .player-info h2 { /* Estilo para player modal, se usado aqui */
+    font-size: 1.1rem;
+  }
+  .player-info p {
+    font-size: 0.85rem;
   }
 }
-
+  

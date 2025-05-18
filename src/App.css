@@ -3,59 +3,76 @@ body, html {
     padding: 0;
     height: 100%;
     background-color: #121212;
-    font-family: Arial, sans-serif;
+    font-family: 'Poppins', Arial, sans-serif; /* Adicionando Poppins como preferencial */
+    -webkit-tap-highlight-color: transparent; /* Remove o destaque azul ao tocar em links/botões no mobile */
   }
   
   .app-container {
     min-height: 100vh;
+    box-sizing: border-box; /* Garante que padding não aumente o tamanho total */
   }
   
   .login-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    min-height: 100vh; /* Usar min-height para flexibilidade */
+    padding: 15px; /* Adiciona padding para não colar nas bordas */
+    box-sizing: border-box;
   }
   
   .login-box {
     background-color: #1f1f1f;
-    padding: 40px;
+    padding: 30px 25px; /* Reduzido padding para telas menores */
     border-radius: 10px;
     box-shadow: 0px 0px 20px #00000080;
-    width: 300px;
+    width: 100%; /* Ocupa a largura disponível, limitado pelo max-width */
+    max-width: 320px; /* Limita a largura máxima */
     text-align: center;
+    box-sizing: border-box;
   }
   
   .login-box h1 {
     color: #ffffff;
     margin-bottom: 20px;
+    font-size: 1.8rem; /* Ajustado tamanho da fonte */
   }
   
   .login-box input {
     width: 100%;
-    padding: 10px;
+    padding: 12px 15px; /* Aumentado padding para melhor toque */
     margin: 10px 0;
-    border: none;
+    border: 1px solid #333; /* Adicionada borda sutil */
     border-radius: 5px;
     background-color: #2c2c2c;
     color: white;
+    font-size: 1rem; /* Ajustado tamanho da fonte */
+    box-sizing: border-box;
   }
   
   .login-box input::placeholder {
     color: #888;
   }
+
+  .login-box input:focus {
+    outline: none;
+    border-color: #4caf50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+  }
   
   .login-box button {
     width: 100%;
-    padding: 10px;
+    padding: 12px 15px; /* Aumentado padding */
     margin-top: 20px;
     background-color: #4caf50;
     border: none;
     border-radius: 5px;
     color: white;
     font-weight: bold;
+    font-size: 1rem; /* Ajustado tamanho da fonte */
     cursor: pointer;
     transition: background-color 0.3s ease;
+    box-sizing: border-box;
   }
   
   .login-box button:hover {
@@ -63,12 +80,13 @@ body, html {
   }
   
   .error {
-    color: red;
+    color: #ff5252; /* Cor de erro mais viva */
     margin-top: 15px;
+    font-size: 0.9rem;
   }
   
   .home-page {
-    padding: 40px;
+    padding: 20px; /* Reduzido padding para telas menores */
     color: white;
     text-align: center;
   }
@@ -76,18 +94,19 @@ body, html {
     list-style: none;
     padding: 0;
     margin-top: 20px;
-    max-height: 400px;
+    max-height: calc(100vh - 150px); /* Ajusta altura máxima dinamicamente */
     overflow-y: auto;
   }
   
   .channel-list li {
     background-color: #1f1f1f;
     margin: 8px 0;
-    padding: 10px;
+    padding: 12px 15px; /* Aumentado padding */
     border-radius: 5px;
     color: white;
     cursor: pointer;
     transition: background-color 0.3s;
+    font-size: 0.95rem; /* Ajustado tamanho da fonte */
   }
   
   .channel-list li:hover {

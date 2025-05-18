@@ -1,6 +1,6 @@
 /* Login.css */
 
-body {
+body.login-page-body {
   margin: 0;
   padding: 0;
   font-family: 'Poppins', sans-serif;
@@ -9,6 +9,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Container central */
@@ -17,6 +18,9 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  width: 100%; /* Garante que o container ocupe toda a largura */
+  padding: 15px; /* Adiciona padding para evitar que o conteúdo cole nas bordas em telas pequenas */
+  box-sizing: border-box;
   background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://assets.nflxext.com/ffe/siteui/vlv3/00103100-5b45-4d4f-af32-342649f1bda5/4f0437a7-333c-42f9-801e-dce7a032c30c/BR-pt-20230821-popsignuptwoweeks-perspective_alpha_website_large.jpg');
   background-size: cover;
   background-position: center;
@@ -24,55 +28,56 @@ body {
 
 /* Caixa de login */
 .login-box {
-  background: rgba(0, 0, 0, 0.75);
-  padding: 60px 68px;
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.8); /* Aumenta um pouco a opacidade para melhor contraste */
+  padding: 40px 25px; /* Ajustado padding para telas menores */
+  border-radius: 8px; /* Bordas um pouco mais suaves */
   text-align: left;
   width: 100%;
-  max-width: 450px;
+  max-width: 400px; /* Levemente reduzido para melhor encaixe */
+  box-sizing: border-box;
 }
 
 /* Título */
 .login-box h1 {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   color: #ffffff;
-  font-size: 32px;
-  font-weight: 500;
+  font-size: 28px; /* Reduzido para telas menores */
+  font-weight: 600; /* Aumenta o peso da fonte */
 }
 
 /* Input groups */
 .input-group {
   position: relative;
-  margin-bottom: 16px;
+  margin-bottom: 20px; /* Aumentado espaçamento */
 }
 
 .input-group i {
   position: absolute;
-  left: 20px;
+  left: 18px; /* Ajustado ícone */
   top: 50%;
   transform: translateY(-50%);
-  color: #8c8c8c;
-  font-size: 16px;
+  color: #a0a0a0; /* Cor do ícone mais suave */
+  font-size: 18px; /* Tamanho do ícone */
 }
 
 .password-toggle {
   position: absolute;
-  right: 16px;
+  right: 18px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #8c8c8c;
+  color: #a0a0a0;
   cursor: pointer;
   padding: 0;
-  font-size: 16px;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.3s ease;
   z-index: 2;
-  width: 24px;
-  height: 24px;
+  width: 28px; /* Aumentado área de toque */
+  height: 28px; /* Aumentado área de toque */
 }
 
 .password-toggle:hover {
@@ -81,17 +86,16 @@ body {
 
 .login-box input {
   width: 100%;
-  padding: 16px 48px 16px 48px;
-  border: none;
-  border-radius: 4px;
-  background: #333333;
+  padding: 18px 48px; /* Aumentado padding vertical e para ícones */
+  border: 1px solid #444; /* Borda sutil */
+  border-radius: 6px; /* Bordas mais suaves */
+  background: #282828; /* Fundo um pouco mais claro */
   color: #ffffff;
   font-size: 16px;
   line-height: 1.5;
   outline: none;
   transition: all 0.3s ease;
   box-sizing: border-box;
-  position: relative;
 }
 
 .login-box input::placeholder {
@@ -99,20 +103,22 @@ body {
 }
 
 .login-box input:focus {
-  background: #454545;
+  background: #333333;
+  border-color: #e50914; /* Destaque na cor da marca */
+  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
 }
 
 /* Botão */
 .login-box button {
   width: 100%;
-  padding: 16px;
-  margin-top: 24px;
+  padding: 18px; /* Aumentado padding */
+  margin-top: 28px; /* Aumentado espaçamento */
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   background: #e50914;
   color: #ffffff;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.3s ease;
 }
@@ -123,7 +129,8 @@ body {
 
 /* Mensagem de erro */
 .error {
-  margin-top: 16px;
+  margin-top: 18px;
   color: #e87c03;
-  font-size: 13px;
+  font-size: 14px; /* Aumentado tamanho da fonte */
+  text-align: center; /* Centraliza a mensagem de erro */
 }

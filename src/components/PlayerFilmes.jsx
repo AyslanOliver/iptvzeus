@@ -139,6 +139,11 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
           )}
         </div>
       )}
+
+      <div className="player-header">
+        <h2>{movie?.name || movie?.title || 'Player'}</h2>
+        <button onClick={onClose} className="close-button" aria-label="Fechar player">&times;</button>
+      </div>
   
       <div className="player-wrapper">
         <video

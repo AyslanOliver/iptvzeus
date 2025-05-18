@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
@@ -6,6 +6,22 @@ import './Login.css';
 
 function Login() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const user = localStorage.getItem('iptvUser');
+    if (user) {
+      try {
+        JSON.parse(user);
+        navigate('/home');
+      } catch (e) {
+        console.error('Erro ao parsear usuário do localStorage:', e);
+        // Limpar dados inválidos se houver erro no parse
+        localStorage.removeItem('iptvUser');
+      }
+    }
+  }, [navigate]);
+
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +52,8 @@ function Login() {
       // Redireciona para a página home
       navigate('/home');
     } catch (err) {
+      console.error('Erro ao processar login:', err);
+
       setError('Erro ao processar login');
     } finally {
       setLoading(false);

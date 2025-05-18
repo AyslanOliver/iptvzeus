@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlayerSeries from './components/PlayerSeries';
 import './Series.css';
+import Header from './Header';
 
 const USERNAME = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).username : '';
 const PASSWORD = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).password : '';
@@ -188,23 +189,8 @@ const Series = () => {
 
   return (
     <div className="series-container">
-      <div className="series-header">
-        <h1>Séries</h1>
-        <div className="category-filter">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="category-select"
-          >
-            <option value="all">Todas as Categorias</option>
-            {categories.map((category) => (
-              <option key={category.category_id} value={category.category_id}>
-                {category.category_name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <Header />
+      <h2>Séries</h2>
       <div className="series-list">
         {series.map((serie) => (
           <div
