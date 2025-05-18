@@ -6,9 +6,11 @@
   --card-bg: #222;
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --glass-bg: rgba(255, 255, 255, 0.10);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-hover: 0 12px 32px rgba(229, 9, 20, 0.15);
+  --transition: 0.3s cubic-bezier(.4,2,.6,1);
 }
 
 body, html {
@@ -17,77 +19,100 @@ body, html {
   background: var(--dark-bg);
   font-family: 'Poppins', sans-serif;
   color: var(--text-primary);
-}
-
-/* ===== LOBBY CONTAINER ===== */
-.lobby-container {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
   min-height: 100vh;
 }
 
-/* ===== HERO ===== */
+.lobby-container {
+  padding: 2.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  min-height: 100vh;
+  background: linear-gradient(120deg, #181818 60%, #2d0b0e 100%);
+}
+
 .hero-section {
-  height: 70vh;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent), url('./img/banner.svg') center/cover no-repeat;
+  height: 68vh;
+  background: linear-gradient(120deg, rgba(20,20,20,0.95) 60%, rgba(229,9,20,0.25) 100%), url('./img/banner.svg') center/cover no-repeat;
   display: flex;
   align-items: flex-end;
-  padding: 3rem 2rem;
+  padding: 3.5rem 2rem 2rem 2rem;
   position: relative;
-  border-radius: 0.5rem;
+  border-radius: 0.7rem;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
 
 .hero-content {
   max-width: 700px;
+  z-index: 2;
 }
 
 .hero-section h1 {
-  font-size: 3.5rem;
+  font-size: 3.8rem;
   font-weight: 900;
   color: var(--text-primary);
-  margin: 0 0 1rem 0;
-  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.75);
+  margin: 0 0 1.2rem 0;
+  text-shadow: 2px 2px 12px rgba(0,0,0,0.85);
+  letter-spacing: -1px;
 }
 
 .hero-description {
-  font-size: 1.2rem;
-  line-height: 1.5;
+  font-size: 1.25rem;
+  line-height: 1.6;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
-/* ===== MENU OPTIONS ===== */
 .menu-options {
   display: flex;
   overflow-x: auto;
-  gap: 1rem;
-  padding: 1rem 0;
+  gap: 1.2rem;
+  padding: 1.2rem 0 0.5rem 0;
   scrollbar-width: none;
 }
 .menu-options::-webkit-scrollbar {
   display: none;
 }
 
-/* ===== CONTENT ROW ===== */
+.menu-options button, .menu-options a {
+  background: var(--glass-bg);
+  border: 1.5px solid var(--glass-border);
+  color: var(--text-primary);
+  padding: 0.7rem 1.5rem;
+  border-radius: 2rem;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  outline: none;
+  text-decoration: none;
+}
+.menu-options button:hover, .menu-options a:hover {
+  background: var(--netflix-red);
+  color: #fff;
+  box-shadow: var(--shadow-hover);
+}
+
 .content-row {
-  margin-bottom: 2rem;
+  margin-bottom: 2.2rem;
 }
 
 .row-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0 0 1rem 0;
-  padding-left: 1rem;
-  border-left: 4px solid var(--netflix-red);
+  font-size: 1.7rem;
+  font-weight: 800;
+  margin: 0 0 1.1rem 0;
+  padding-left: 1.1rem;
+  border-left: 5px solid var(--netflix-red);
+  letter-spacing: -0.5px;
 }
 
-/* ===== CARDS ===== */
 .recent-channels-grid {
   display: flex;
-  gap: 1.25rem;
+  gap: 1.5rem;
   overflow-x: auto;
-  padding-bottom: 1rem;
+  padding-bottom: 1.2rem;
   scrollbar-width: none;
 }
 .recent-channels-grid::-webkit-scrollbar {
@@ -98,72 +123,110 @@ body, html {
   min-width: 240px;
   max-width: 260px;
   background: var(--card-bg);
-  border-radius: 0.5rem;
+  border-radius: 0.7rem;
   overflow: hidden;
-  transition: transform 0.3s ease;
+  transition: transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
   box-shadow: var(--shadow-lg);
+  position: relative;
+  border: 1.5px solid transparent;
 }
-
 .content-card:hover {
-  transform: scale(1.05);
-  z-index: 2;
+  transform: scale(1.07) translateY(-6px);
+  z-index: 3;
+  box-shadow: 0 8px 32px 0 rgba(229,9,20,0.18), var(--shadow-lg);
+  border: 1.5px solid var(--netflix-red);
 }
 
 .card-image {
   width: 100%;
-  height: 140px;
+  height: 160px;
   object-fit: cover;
   display: block;
+  filter: brightness(0.92) contrast(1.08);
+  transition: filter var(--transition);
+}
+.content-card:hover .card-image {
+  filter: brightness(1.05) contrast(1.15) saturate(1.1);
 }
 
 .card-overlay {
-  padding: 0.8rem;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 1rem 0.9rem 0.7rem 0.9rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.88) 80%, transparent 100%);
   position: relative;
   top: -48px;
 }
 
 .card-title {
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.3rem;
+  font-weight: 700;
+  font-size: 1.08rem;
+  margin-bottom: 0.35rem;
+  color: #fff;
+  text-shadow: 1px 1px 8px rgba(0,0,0,0.45);
 }
 
 .card-info {
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
-/* ===== FAVORITE COUNTER ===== */
 .favorite-count {
   position: absolute;
   top: 1rem;
   right: 1rem;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  padding: 0.3rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  backdrop-filter: blur(4px);
+  border: 1.5px solid var(--glass-border);
+  padding: 0.35rem 0.7rem;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
-/* ===== RESPONSIVO ===== */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .hero-section {
-    height: 60vh;
+    height: 52vh;
     padding: 2rem 1rem;
   }
-
   .hero-section h1 {
-    font-size: 2.2rem;
+    font-size: 2.5rem;
   }
-
   .content-card {
     min-width: 180px;
+    max-width: 200px;
   }
-
   .row-title {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .lobby-container {
+    padding: 1rem 0.2rem;
+    gap: 1.2rem;
+  }
+  .hero-section {
+    height: 38vh;
+    padding: 1.2rem 0.5rem;
+    border-radius: 0.3rem;
+  }
+  .hero-section h1 {
+    font-size: 1.35rem;
+  }
+  .content-card {
+    min-width: 120px;
+    max-width: 140px;
+    border-radius: 0.3rem;
+  }
+  .card-image {
+    height: 80px;
+  }
+  .row-title {
+    font-size: 1rem;
+    padding-left: 0.5rem;
+    border-left-width: 3px;
   }
 }

@@ -160,62 +160,78 @@ function Filmes() {
             </select>
           </div>
         </div>
-      </div>
-
-      <div className="filmes-grid">
-        {filteredFilmes().map(filme => (
-          <div
-            key={filme.id}
-            className="filme-card"
-            onClick={() => handleFilmeClick(filme)}
+      </div> {/* This div closes filmes-header */}
+      {/* Sidebar para categorias */}
+      <div className="categories-sidebar">
+        <h2>Categorias</h2>
+        <ul>
+          <li 
+            className={selectedCategory === 'all' ? 'active' : ''}
+            onClick={() => setSelectedCategory('all')}
           >
-            <img
-              src={filme.thumbnail}
-              alt={filme.title}
-              className="filme-thumbnail"
-            />
-            <div className="filme-info">
-              <h3 className="filme-title">{filme.title}</h3>
-              <div className="filme-details">
-                <span className="filme-year">
-                  <i className="fas fa-calendar"></i>
-                  {filme.year}
-                </span>
-                <span className="filme-duration">
-                  <i className="fas fa-clock"></i>
-                  {filme.duration}
-                </span>
-              </div>
-              <div className="filme-categories">
-                {filme.categories && filme.categories.map((category, index) => (
-                  <span key={index} className="filme-category">
-                    {category}
+            Todas Categorias
+          </li>
+          {categories.map(category => (
+            <li 
+              key={category.category_id} 
+              className={selectedCategory === category.category_id ? 'active' : ''}
+              onClick={() => setSelectedCategory(category.category_id)}
+            >
+              {category.category_name}
+            </li>
+          ))}
+        </ul>
+      </div> {/* This div closes categories-sidebar */}
+
+      {/* Conteúdo principal dos filmes */}
+      <div className="filmes-main-content">
+        <div className="filmes-grid">
+          {filteredFilmes().map(filme => (
+            <div
+              key={filme.id}
+              className="filme-card"
+              onClick={() => handleFilmeClick(filme)}
+            >
+              <img
+                src={filme.thumbnail}
+                alt={filme.title}
+                className="filme-thumbnail"
+              />
+              <div className="filme-info">
+                <h3 className="filme-title">{filme.title}</h3>
+                <div className="filme-details">
+                  <span className="filme-year">
+                    <i className="fas fa-calendar"></i>
+                    {filme.year}
                   </span>
-                ))}
+                  <span className="filme-duration">
+                    <i className="fas fa-clock"></i>
+                    {filme.duration}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {loading && <div className="loading">Carregando filmes...</div>}
-      {error && <div className="error">{error}</div>}
-      {selectedFilme && (
-        <PlayerFilmes 
-          movie={selectedFilme} 
-          onClose={handleClosePlayer}
-          autoPlay={true}
-          onReady={() => setPlayerLoading(false)}
-          onClick={() => setPlayerLoading(true)}
-        />
-      )}
-      {playerLoading && (
-        <div className="player-loading">
-          Carregando filme...
+          ))}
+          {loading && <div className="loading">Carregando filmes...</div>}
+          {error && <div className="error">{error}</div>}
+          {playerLoading && (
+            <div className="player-loading">
+              Carregando filme...
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+        {selectedFilme && (
+          <PlayerFilmes
+            movie={selectedFilme}
+            onClose={handleClosePlayer}
+            autoPlay={true}
+            onReady={() => setPlayerLoading(false)}
+            onClick={() => setPlayerLoading(true)}
+          />
+        )}
+      </div> 
+    </div> 
+ );
 }
 
 export default Filmes;
