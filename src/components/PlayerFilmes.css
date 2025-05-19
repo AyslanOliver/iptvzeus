@@ -3,29 +3,26 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.9);
-  z-index: 9999;
   display: flex;
   flex-direction: column;
+  z-index: 1000;
 }
 
 .player-header {
-  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1rem;
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
 }
 
 .player-header h2 {
   margin: 0;
-  font-size: 1.2rem;
-  max-width: 80%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 1.5rem;
+  color: white;
 }
 
 .close-button {
@@ -36,44 +33,104 @@
   cursor: pointer;
   padding: 0.5rem;
   line-height: 1;
-  -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.2s ease;
+  transition: color 0.3s ease;
 }
 
 .close-button:hover {
-  opacity: 0.8;
+  color: #ff4444;
 }
 
 .player-wrapper {
-  position: relative;
   flex: 1;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background-color: #000;
-  width: 100%;
-  height: calc(100vh - 4rem);
+  align-items: center;
+  position: relative;
+  padding: 1rem;
 }
 
 .video-player {
-  width: 100%;
-  height: 100%;
-  max-height: calc(100vh - 4rem);
-  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  background: black;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.player-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  color: white;
+  z-index: 1001;
+}
+
+.player-error p {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.retry-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.retry-button:hover {
+  background-color: #0056b3;
+}
+
+.player-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: white;
+  z-index: 1001;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #007bff;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {
-  .player-header {
-    padding: 0.75rem;
-  }
-
   .player-header h2 {
-    font-size: 1rem;
+    font-size: 1.2rem;
   }
 
-  .close-button {
-    font-size: 1.5rem;
-    padding: 0.25rem;
+  .player-wrapper {
+    padding: 0.5rem;
+  }
+
+  .video-player {
+    width: 100%;
+    height: auto;
   }
 }
 

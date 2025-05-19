@@ -1,13 +1,20 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import './PlayerFilmes.css';
 import Hls from 'hls.js';
 
 const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const hlsRef = useRef(null);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const playAttemptRef = useRef(null);
   const abortControllerRef = useRef(new AbortController());
+
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000;
 
   useEffect(() => {
     const handleEscKey = (event) => {
@@ -20,13 +27,39 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
     return () => document.removeEventListener('keydown', handleEscKey);
   }, [onClose]);
 
-  const handleVideoReady = () => {
-    if (autoPlay && videoRef.current) {
-      console.log('Attempting autoplay'); // Adicionado log para autoplay
-      videoRef.current.play().catch(err => console.error('Erro ao reproduzir:', err));
+  const attemptPlay = useCallback(async () => {
+    if (!videoRef.current) return;
+
+    try {
+      // Limpa qualquer tentativa anterior
+      if (playAttemptRef.current) {
+        clearTimeout(playAttemptRef.current);
+      }
+
+      // Aguarda um pequeno delay para garantir que o vídeo está pronto
+      playAttemptRef.current = setTimeout(async () => {
+        try {
+          await videoRef.current.play();
+          setIsPlaying(true);
+        } catch (err) {
+          console.error('Erro ao reproduzir:', err);
+          if (err.name !== 'AbortError') {
+            setError('Erro ao iniciar a reprodução. Tente novamente.');
+          }
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Erro ao tentar reproduzir:', err);
+    }
+  }, []);
+
+  const handleVideoReady = useCallback(() => {
+    setIsLoading(false);
+    if (autoPlay) {
+      attemptPlay();
     }
     if (onReady) onReady();
-  };
+  }, [autoPlay, onReady, attemptPlay]);
 
   const handleBackgroundClick = (event) => {
     if (event.target === containerRef.current) {
@@ -34,107 +67,147 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
     }
   };
 
-  // Estrutura consolidada com todos os recursos integrados
-  useEffect(() => {
-    const loadVideo = async () => {
-      console.log('Attempting to load video:', movie);
-      if (!movie || !movie.stream_id || !movie.container_extension) {
-        setError('Informações do filme incompletas.');
-        console.error('Informações do filme incompletas:', movie);
-        return;
-      }
+  const destroyHls = useCallback(() => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+  }, []);
 
-      const user = JSON.parse(localStorage.getItem('iptvUser'));
-      if (!user) {
-        setError('Usuário não autenticado.');
-        console.error('Usuário não autenticado.');
-        return;
-      }
+  const initializeHls = useCallback((streamUrl) => {
+    if (hlsRef.current) {
+      destroyHls();
+    }
 
-      // Construir a URL do stream
-      const streamUrl = `http://nxczs.top/movie/${user.username}/${user.password}/${movie.stream_id}.${movie.container_extension}`;
-      console.log('Stream URL:', streamUrl);
+    const hls = new Hls({
+      maxBufferLength: 30,
+      maxMaxBufferLength: 600,
+      maxBufferSize: 60 * 1000 * 1000,
+      maxBufferHole: 0.5,
+      lowLatencyMode: true,
+      backBufferLength: 90,
+      enableWorker: true,
+      startLevel: -1,
+      abrEwmaDefaultEstimate: 500000,
+      testBandwidth: true,
+      progressive: true,
+      lowLatencyMode: true,
+      enableWorker: true,
+      debug: false
+    });
 
-      try {
-        // Lógica de carregamento unificada
-        if (movie.container_extension === 'mp4') {
-          console.log('Attempting native MP4 playback');
-          videoRef.current.src = streamUrl;
-          videoRef.current.addEventListener('loadedmetadata', handleVideoReady);
-        } else if (Hls.isSupported()) {
-          console.log('HLS is supported');
-          const hls = new Hls();
-          hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-            console.log('video and hls.js are now bound together !');
-          });
-          hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-            console.log('manifest loaded, found ' + data.levels.length + ' quality levels');
-            if (onReady) onReady();
-          });
-          hls.on(Hls.Events.ERROR, function (event, data) {
-            console.error('HLS.js error:', data);
-            let errorMessage = 'Erro desconhecido ao carregar o vídeo.';
-            if (data.fatal) {
-              switch(data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                  errorMessage = 'Erro de rede ao carregar o vídeo.';
-                  console.error('fatal network error encountered, try to recover');
-                  hls.startLoad();
-                  break;
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                  errorMessage = 'Erro de mídia ao carregar o vídeo.';
-                  console.error('fatal media error encountered, try to recover');
-                  hls.recoverMediaError();
-                  break;
-                default:
-                  errorMessage = 'Erro fatal ao carregar o vídeo.';
-                  console.error('fatal error encountered, cannot recover');
-                  onClose(); // Fechar o player em caso de erro fatal irrecuperável
-                  break;
-              }
-            }
-            setError(errorMessage);
-          });
-          hls.loadSource(streamUrl);
-          hls.attachMedia(videoRef.current);
-        } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-          console.log('HLS not supported, but native playback is possible');
-          // Fallback para players nativos
-          videoRef.current.src = streamUrl;
-          videoRef.current.addEventListener('loadedmetadata', handleVideoReady);
-        } else {
-          setError('Seu navegador não suporta a reprodução deste vídeo.');
-          console.error('Native playback not supported');
+    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+      console.log('HLS.js e vídeo conectados');
+    });
+
+    hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+      console.log('Manifest carregado, encontradas ' + data.levels.length + ' qualidades');
+      handleVideoReady();
+    });
+
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            console.error('Erro de rede fatal, tentando recuperar...');
+            hls.startLoad();
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            console.error('Erro de mídia fatal, tentando recuperar...');
+            hls.recoverMediaError();
+            break;
+          default:
+            console.error('Erro fatal, não é possível recuperar');
+            setError('Erro fatal ao carregar o vídeo. Tente novamente.');
+            destroyHls();
+            break;
         }
-      } catch (err) {
-        // Tratamento unificado de erros
-        console.error('Erro geral ao carregar o vídeo:', err);
-        setError(`Erro ao carregar o vídeo: ${err.message}`);
       }
-    };
-    
-    loadVideo();
-    return () => {
+    });
+
+    hls.loadSource(streamUrl);
+    hls.attachMedia(videoRef.current);
+    hlsRef.current = hls;
+  }, [destroyHls, handleVideoReady]);
+
+  const loadVideo = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    setIsPlaying(false);
+
+    if (!movie?.stream_id || !movie?.container_extension) {
+      setError('Informações do filme incompletas.');
+      return;
+    }
+
+    const user = JSON.parse(localStorage.getItem('iptvUser'));
+    if (!user) {
+      setError('Usuário não autenticado.');
+      return;
+    }
+
+    const streamUrl = `http://nxczs.top/movie/${user.username}/${user.password}/${movie.stream_id}.${movie.container_extension}`;
+    console.log('Carregando stream:', streamUrl);
+
+    try {
       if (videoRef.current) {
         videoRef.current.pause();
-        videoRef.current.removeAttribute('src'); // Limpa a fonte
+        videoRef.current.removeAttribute('src');
+        videoRef.current.load();
+      }
+
+      if (movie.container_extension === 'mp4') {
+        videoRef.current.src = streamUrl;
+        videoRef.current.addEventListener('loadedmetadata', handleVideoReady);
+      } else if (Hls.isSupported()) {
+        initializeHls(streamUrl);
+      } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+        videoRef.current.src = streamUrl;
+        videoRef.current.addEventListener('loadedmetadata', handleVideoReady);
+      } else {
+        setError('Seu navegador não suporta a reprodução deste vídeo.');
+      }
+    } catch (err) {
+      console.error('Erro ao carregar vídeo:', err);
+      setError(`Erro ao carregar o vídeo: ${err.message}`);
+    }
+  }, [movie, handleVideoReady, initializeHls]);
+
+  useEffect(() => {
+    loadVideo();
+
+    return () => {
+      if (playAttemptRef.current) {
+        clearTimeout(playAttemptRef.current);
+      }
+      destroyHls();
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute('src');
         videoRef.current.load();
       }
       abortControllerRef.current.abort();
     };
-  }, [retryCount, movie, autoPlay, onReady, onClose]);
+  }, [loadVideo, destroyHls]);
+
+  const handleRetry = useCallback(() => {
+    if (retryCount < MAX_RETRIES) {
+      setRetryCount(prev => prev + 1);
+      setTimeout(loadVideo, RETRY_DELAY);
+    }
+  }, [retryCount, loadVideo]);
 
   return (
     <div className="player-filmes-container" ref={containerRef} onClick={handleBackgroundClick}>
       {error && (
         <div className="player-error">
-          <p>Erro ao carregar: {error}</p>
-          {retryCount < 2 && (
+          <p>{error}</p>
+          {retryCount < MAX_RETRIES && (
             <button 
               className="retry-button"
-              onClick={() => setRetryCount(c => c + 1)}
+              onClick={handleRetry}
             >
-              Tentar novamente ({2 - retryCount} restantes)
+              Tentar novamente ({MAX_RETRIES - retryCount} restantes)
             </button>
           )}
         </div>
@@ -146,17 +219,24 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
       </div>
   
       <div className="player-wrapper">
+        {isLoading && (
+          <div className="player-loading">
+            <div className="spinner"></div>
+            <p>Carregando vídeo...</p>
+          </div>
+        )}
         <video
           ref={videoRef}
           className="video-player"
           controls
-          preload="none"
+          preload="auto"
           playsInline
           onCanPlay={handleVideoReady}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
           onError={(e) => {
-            console.error('Erro no elemento de vídeo nativo:', e.nativeEvent);
-            // O erro nativo pode ser mais específico, mas o HLS.js já trata a maioria dos casos
-            // setError('Formato de vídeo não suportado ou erro de rede');
+            console.error('Erro no elemento de vídeo:', e);
+            setError('Erro ao carregar o vídeo. Tente novamente.');
           }}
         />
       </div>

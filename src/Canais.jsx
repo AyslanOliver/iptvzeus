@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import Hls from 'hls.js';
 import './Canais.css';
-import Header from './components/Header';
 
 const Canais = () => {
   const [channels, setChannels] = useState([]);
@@ -97,25 +96,21 @@ const Canais = () => {
         try {
           const response = await fetch(`/api/epg/${selectedChannel.id}`);
           
-          // Verificar se a resposta é válida
           if (!response.ok) {
             console.error('Falha ao carregar EPG:', response.status);
             return;
           }
           
-          // Verificar tipo de conteúdo
           const contentType = response.headers.get('content-type');
           if (!contentType || !contentType.includes('application/json')) {
             console.error('Resposta do EPG não é JSON:', await response.text());
             return;
           }
           
-          // Parsear resposta JSON
           const data = await response.json();
           setEpgData(data);
         } catch (err) {
           console.error('Erro ao carregar EPG:', err);
-          // Definir dados vazios em caso de erro
           setEpgData({});
         }
       }
@@ -141,7 +136,6 @@ const Canais = () => {
     if (selectedCategory === 'all') return channels;
     if (selectedCategory === 'favorites') return favorites;
     
-    // Verificar se é uma subcategoria dos canais abertos
     const openCategory = predefinedCategories[0];
     const isOpenSubcategory = openCategory.subcategories.some(sub => sub.category_id === selectedCategory);
     
@@ -165,7 +159,6 @@ const Canais = () => {
       });
     }
     
-    // Para outras categorias, usar o category_id da API
     return channels.filter(channel => channel.category_id === selectedCategory);
   }, [channels, selectedCategory, favorites, predefinedCategories]);
 
@@ -254,84 +247,83 @@ const Canais = () => {
 
   return (
     <div className="container">
-      <Header />
       <div className="content-wrapper">
         <div className="categories">
-        <button
-          className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
-          onClick={() => setSelectedCategory('all')}
-        >
-          Todos os Canais
-        </button>
-        <button
-          className={`category-button ${selectedCategory === 'favorites' ? 'active' : ''}`}
-          onClick={() => setSelectedCategory('favorites')}
-        >
-          Favoritos
-        </button>
-        {categories.map(category => (
-          <React.Fragment key={`cat-${category.category_id}`}>
-            <button
-              className={`category-button main-category ${selectedCategory === category.category_id ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(category.category_id)}
-            >
-              {category.category_name}
-            </button>
-            {category.subcategories && category.subcategories.map(sub => (
+          <button
+            className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('all')}
+          >
+            Todos os Canais
+          </button>
+          <button
+            className={`category-button ${selectedCategory === 'favorites' ? 'active' : ''}`}
+            onClick={() => setSelectedCategory('favorites')}
+          >
+            Favoritos
+          </button>
+          {categories.map(category => (
+            <React.Fragment key={`cat-${category.category_id}`}>
               <button
-                key={sub.category_id}
-                className={`category-button subcategory ${selectedCategory === sub.category_id ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(sub.category_id)}
+                className={`category-button main-category ${selectedCategory === category.category_id ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(category.category_id)}
               >
-                {sub.category_name}
+                {category.category_name}
               </button>
-            ))}
-          </React.Fragment>
-        ))}
-      </div>
+              {category.subcategories && category.subcategories.map(sub => (
+                <button
+                  key={sub.category_id}
+                  className={`category-button subcategory ${selectedCategory === sub.category_id ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(sub.category_id)}
+                >
+                  {sub.category_name}
+                </button>
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
 
-      <div className="channel-list">
-        {filteredChannels().length === 0 ? (
-          <div className="no-channels">
-            Nenhum canal encontrado nesta categoria
-          </div>
-        ) : (
-          filteredChannels().map((channel, index) => (
-            <div
-              key={`channel-${channel.id}-${index}`}
-              className={`channel-item ${selectedChannel?.id === channel.id ? 'active' : ''}`}
-              onClick={() => setSelectedChannel(channel)}
-            >
-              <img
-                src={channel.stream_icon || channel.logo}
-                alt={`${channel.name} logo`}
-                className="channel-logo"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel.name)}&background=random&color=fff&size=128`;
-                }}
-                loading="lazy"
-              />
-              <span className="channel-name">{channel.name}</span>
-              <button
-                className="favorite-button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFavorite(channel);
-                }}
-              >
-                {favorites.some(fav => fav.id === channel.id) ? (
-                  <FaHeart />
-                ) : (
-                  <FaRegHeart />
-                )}
-              </button>
+        <div className="channel-list">
+          {filteredChannels().length === 0 ? (
+            <div className="no-channels">
+              Nenhum canal encontrado nesta categoria
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            filteredChannels().map((channel, index) => (
+              <div
+                key={`channel-${channel.id}-${index}`}
+                className={`channel-item ${selectedChannel?.id === channel.id ? 'active' : ''}`}
+                onClick={() => setSelectedChannel(channel)}
+              >
+                <img
+                  src={channel.stream_icon || channel.logo}
+                  alt={`${channel.name} logo`}
+                  className="channel-logo"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel.name)}&background=random&color=fff&size=128`;
+                  }}
+                  loading="lazy"
+                />
+                <span className="channel-name">{channel.name}</span>
+                <button
+                  className="favorite-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(channel);
+                  }}
+                >
+                  {favorites.some(fav => fav.id === channel.id) ? (
+                    <FaHeart />
+                  ) : (
+                    <FaRegHeart />
+                  )}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
 
-      {renderCurrentChannel()}
+        {renderCurrentChannel()}
       </div>
     </div>
   );

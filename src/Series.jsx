@@ -1,48 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import PlayerSeries from './components/PlayerSeries';
 import './Series.css';
-import Header from './Header';
 
 const USERNAME = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).username : '';
 const PASSWORD = localStorage.getItem('iptvUser') ? JSON.parse(localStorage.getItem('iptvUser')).password : '';
 const DNS = 'http://nxczs.top';
 
 const Series = () => {
-  const navigate = useNavigate();
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSeries, setSelectedSeries] = useState(null);
-  const [selectedSeason, setSelectedSeason] = useState(null);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Load categories
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const response = await fetch(
-          `${DNS}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_series_categories`
-        );
-        
-        if (!response.ok) throw new Error('Failed to fetch categories');
-        
-        const data = await response.json();
-        setCategories(data);
-      } catch (err) {
-        console.error('Error loading categories:', err);
+  const fetchWithRetry = async (retryCount) => {
+    try {
+      const response = await fetch(
+        `${DNS}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_series`,
+        {
+          signal: AbortSignal.timeout(10000)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar séries: ${response.status} ${response.statusText}`);
       }
-    };
 
-    if (USERNAME && PASSWORD) {
-      loadCategories();
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (parseError) {
+        const cleanText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+        return JSON.parse(cleanText);
+      }
+    } catch (err) {
+      console.error(`Tentativa ${retryCount} falhou:`, err);
+      return null;
     }
-  }, []);
+  };
 
-  // Modified series loading to include category filtering
+  // Modified series loading
   useEffect(() => {
     const loadSeries = async () => {
       if (!USERNAME || !PASSWORD) {
@@ -53,53 +51,21 @@ const Series = () => {
 
       const MAX_RETRIES = 3;
       let retryCount = 0;
-      let data;
-      
-      while (retryCount < MAX_RETRIES) {
-        try {
-          const categoryParam = selectedCategory !== 'all' ? `&category_id=${selectedCategory}` : '';
-          const response = await fetch(
-            `${DNS}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_series${categoryParam}`,
-            {
-              signal: AbortSignal.timeout(10000) // Timeout de 10 segundos
-            }
-          );
+      let data = null;
 
-          if (!response.ok) {
-            throw new Error(`Falha ao carregar séries: ${response.status} ${response.statusText}`);
-          }
-
-          const text = await response.text();
-          try {
-            data = JSON.parse(text);
-          } catch (parseError) {
-            // Remove caracteres inválidos e tenta parsear novamente
-            const cleanText = text.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
-            data = JSON.parse(cleanText);
-          }
-          
-          if (!data) {
-            throw new Error('Dados inválidos recebidos');
-          }
-          
-          // Se chegou aqui, a requisição foi bem sucedida
-          break;
-          
-        } catch (err) {
+      while (retryCount < MAX_RETRIES && !data) {
+        data = await fetchWithRetry(retryCount);
+        
+        if (!data) {
           retryCount++;
-          console.error(`Tentativa ${retryCount} falhou:`, err);
-          
           if (retryCount >= MAX_RETRIES) {
-            throw new Error(`Falha após ${MAX_RETRIES} tentativas: ${err.message}`);
+            throw new Error(`Falha após ${MAX_RETRIES} tentativas`);
           }
-          
-          // Espera exponencial entre tentativas
           await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
         }
       }
 
       try {
-        // Process all series without limit
         const seriesArray = Array.isArray(data) ? data : Object.values(data);
         const validSeries = seriesArray
           .filter(item => item && item.name && item.series_id)
@@ -107,7 +73,7 @@ const Series = () => {
 
         console.log('Total series loaded:', validSeries.length);
         setSeries(validSeries);
-        setError(null); // Limpa erros anteriores se a requisição for bem-sucedida
+        setError(null);
       } catch (err) {
         console.error('Error loading series:', err);
         setError(`Erro ao carregar séries: ${err.message}`);
@@ -117,7 +83,7 @@ const Series = () => {
     };
 
     loadSeries();
-  }, [selectedCategory]);
+  }, []);
 
   const handleSeriesSelect = async (series) => {
     try {
@@ -134,8 +100,7 @@ const Series = () => {
       try {
         data = JSON.parse(text);
       } catch (parseError) {
-        // Remove caracteres inválidos e tenta parsear novamente
-        const cleanText = text.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+        const cleanText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
         data = JSON.parse(cleanText);
       }
 
@@ -143,10 +108,6 @@ const Series = () => {
         throw new Error('Invalid series data received');
       }
 
-      setSelectedSeries({ ...series, ...data });
-
-      // Select first season and episode
-      // Transformar os dados dos episódios para o formato esperado pelo PlayerSeries
       if (data.episodes) {
         const episodesList = [];
         Object.entries(data.episodes).forEach(([season, episodes]) => {
@@ -189,7 +150,6 @@ const Series = () => {
 
   return (
     <div className="series-container">
-      <Header />
       <h2>Séries</h2>
       <div className="series-list">
         {series.map((serie) => (

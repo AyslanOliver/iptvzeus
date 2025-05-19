@@ -2,7 +2,62 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './Filmes.css';
 import PlayerFilmes from './components/PlayerFilmes';
 import Hls from 'hls.js';
-import Header from './Header';
+import ModalDetalhesFilme from './components/ModalDetalhesFilme';
+
+// Componente de imagem com fallback
+const FilmeThumbnail = ({ src, alt, title }) => {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const MAX_RETRIES = 3;
+  const FALLBACK_IMAGE = 'https://via.placeholder.com/200x300?text=Sem+Imagem';
+
+  const handleError = useCallback(() => {
+    if (retryCount < MAX_RETRIES) {
+      // Tenta recarregar a imagem após um delay
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        setImgSrc(`${src}?retry=${retryCount + 1}`);
+      }, 1000 * Math.pow(2, retryCount)); // Backoff exponencial
+    } else {
+      setError(true);
+      setImgSrc(FALLBACK_IMAGE);
+    }
+  }, [retryCount, src]);
+
+  const handleLoad = () => {
+    setIsLoading(false);
+    setError(false);
+  };
+
+  return (
+    <div className="filme-thumbnail-container">
+      {isLoading && <div className="thumbnail-loading">Carregando...</div>}
+      <img
+        src={imgSrc}
+        alt={alt || title}
+        className={`filme-thumbnail ${error ? 'error' : ''}`}
+        onError={handleError}
+        onLoad={handleLoad}
+        loading="lazy"
+        style={{ display: error ? 'none' : 'block' }}
+      />
+      {error && (
+        <div 
+          className="filme-thumbnail error"
+          style={{
+            backgroundImage: `url(${FALLBACK_IMAGE})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        />
+      )}
+    </div>
+  );
+};
 
 function Filmes() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +68,7 @@ function Filmes() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [playerLoading, setPlayerLoading] = useState(false);
+  const [modalFilme, setModalFilme] = useState(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -68,7 +124,8 @@ function Filmes() {
           thumbnail: filme.stream_icon || 'https://via.placeholder.com/200x350',
           category_id: filme.category_id || '',
           stream_id: filme.stream_id,
-          container_extension: filme.container_extension || 'mp4'
+          container_extension: filme.container_extension || 'mp4',
+          description: filme.description || 'Sem descrição disponível'
         })));
       } catch (err) {
         setError(err.message);
@@ -102,8 +159,13 @@ function Filmes() {
   };
 
   const handleFilmeClick = (filme) => {
-    setSelectedFilme(filme);
+    setModalFilme(filme);
+  };
+
+  const handleAssistir = () => {
+    setSelectedFilme(modalFilme);
     setPlayerLoading(true);
+    setModalFilme(null);
   };
 
   const handleClosePlayer = () => {
@@ -146,43 +208,32 @@ function Filmes() {
               onChange={handleSearch}
             />
           </div>
-          <div className="category-filter">
-            <select 
-              value={selectedCategory} 
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="category-select"
-            >
-              <option value="all">Todas Categorias</option>
-              {categories.map(category => (
-                <option key={category.category_id} value={category.category_id}>
-                  {category.category_name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
-      </div> {/* This div closes filmes-header */}
+      </div>
+
       {/* Sidebar para categorias */}
       <div className="categories-sidebar">
         <h2>Categorias</h2>
-        <ul>
-          <li 
-            className={selectedCategory === 'all' ? 'active' : ''}
+        <div className="categories-list">
+          <div 
+            className={`category-item ${selectedCategory === 'all' ? 'active' : ''}`}
             onClick={() => setSelectedCategory('all')}
           >
-            Todas Categorias
-          </li>
+            <i className="fas fa-film"></i>
+            <span>Todas Categorias</span>
+          </div>
           {categories.map(category => (
-            <li 
+            <div 
               key={category.category_id} 
-              className={selectedCategory === category.category_id ? 'active' : ''}
+              className={`category-item ${selectedCategory === category.category_id ? 'active' : ''}`}
               onClick={() => setSelectedCategory(category.category_id)}
             >
-              {category.category_name}
-            </li>
+              <i className="fas fa-folder"></i>
+              <span>{category.category_name}</span>
+            </div>
           ))}
-        </ul>
-      </div> {/* This div closes categories-sidebar */}
+        </div>
+      </div>
 
       {/* Conteúdo principal dos filmes */}
       <div className="filmes-main-content">
@@ -193,13 +244,14 @@ function Filmes() {
               className="filme-card"
               onClick={() => handleFilmeClick(filme)}
             >
-              <img
+              <FilmeThumbnail
                 src={filme.thumbnail}
                 alt={filme.title}
-                className="filme-thumbnail"
+                title={filme.title}
               />
               <div className="filme-info">
                 <h3 className="filme-title">{filme.title}</h3>
+                <p className="filme-description">{filme.description}</p>
                 <div className="filme-details">
                   <span className="filme-year">
                     <i className="fas fa-calendar"></i>
@@ -221,6 +273,13 @@ function Filmes() {
             </div>
           )}
         </div>
+        {modalFilme && (
+          <ModalDetalhesFilme
+            filme={modalFilme}
+            onClose={() => setModalFilme(null)}
+            onAssistir={handleAssistir}
+          />
+        )}
         {selectedFilme && (
           <PlayerFilmes
             movie={selectedFilme}
