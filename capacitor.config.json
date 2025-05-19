@@ -2,15 +2,18 @@
   "appId": "com.iptvzeus.app",
   "appName": "IPTV Zeus",
   "webDir": "build",
+  "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "http",
+    "androidScheme": "https",
     "cleartext": true,
     "allowNavigation": [
       "*"
     ]
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
   },
   "ios": {
     "limitsNavigationsToAppBoundDomains": false

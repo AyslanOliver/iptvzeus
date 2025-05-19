@@ -1,0 +1,200 @@
+/* Perfil.css */
+
+.perfil-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: linear-gradient(145deg, #2a2a2a, #3d3d3d);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  min-height: 200px;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 100px; /* Aumentado para dar mais espaço ao botão */
+}
+
+.perfil-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.botao-voltar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+}
+
+.botao-voltar:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.botao-voltar:active {
+  transform: translateY(1px);
+}
+
+.botao-voltar svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.perfil-header h2 {
+  font-size: 2rem;
+  color: #00ff88;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.botao-renovacao {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(145deg, #00ff88, #00cc6a);
+  color: #000;
+  border: none;
+  padding: 1.2rem 2.5rem;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+  z-index: 9999;
+  width: auto;
+  min-width: 280px;
+  max-width: 90%;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.botao-renovacao:hover {
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+}
+
+.botao-renovacao:disabled {
+  background: linear-gradient(145deg, #666, #444);
+  cursor: not-allowed;
+  transform: translateX(-50%);
+  box-shadow: none;
+}
+
+.botao-renovacao:active {
+  transform: translateX(-50%) translateY(1px);
+}
+
+.perfil-dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+  position: relative;
+}
+
+.perfil-card {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  border-radius: 10px;
+  transition: transform 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.perfil-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.perfil-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.perfil-linha:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.perfil-linha span {
+  color: #aaa;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.perfil-linha strong {
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.status-ativo {
+  color: #00ff88 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.status-expirado {
+  color: #ff4444 !important;
+  text-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+}
+
+.status-alerta {
+  color: #ffbb33 !important;
+  text-shadow: 0 0 10px rgba(255, 187, 51, 0.3);
+}
+
+@media (max-width: 768px) {
+  .perfil-container {
+    margin: 1rem;
+    padding: 1rem;
+    margin-bottom: 100px;
+  }
+  
+  .perfil-dados {
+    grid-template-columns: 1fr;
+  }
+
+  .botao-renovacao {
+    width: 90%;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    bottom: 20px;
+  }
+
+  .botao-voltar {
+    top: 10px;
+    left: 10px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+} 

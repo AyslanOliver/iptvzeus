@@ -1,142 +1,152 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import './PlayerSeries.css';
-import { FaStepBackward, FaStepForward } from 'react-icons/fa';
 
-function PlayerSeries({ series, onClose }) {
-  const [currentSeason, setCurrentSeason] = useState(1);
-  const [currentEpisode, setCurrentEpisode] = useState(1);
-  const [currentEpisodeData, setCurrentEpisodeData] = useState(null);
-  const playerRef = useRef(null);
-
-  useEffect(() => {
-    if (series && series.episodes) {
-      const episode = series.episodes.find(
-        ep => ep.season === currentSeason && ep.episode === currentEpisode
-      );
-      setCurrentEpisodeData(episode);
-    }
-  }, [series, currentSeason, currentEpisode]);
+const PlayerSeries = ({ serie, episodio, onClose }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const videoRef = useRef(null);
+  const hlsRef = useRef(null);
 
   useEffect(() => {
-    if (currentEpisodeData && currentEpisodeData.url) {
-      const hls = new Hls();
-      const videoElement = playerRef.current;
+    const fetchStreamUrl = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('iptvUser'));
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
 
-      hls.loadSource(currentEpisodeData.url.replace('https://', 'http://'));
-      hls.attachMedia(videoElement);
-      videoElement.load();
+        // Primeiro, vamos buscar a URL do stream através da API
+        const apiUrl = `http://nxczs.top/player_api.php?username=${user.username}&password=${user.password}&action=get_series_info&series_id=${serie.series_id}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
 
-      hls.on(Hls.Events.ERROR, function (event, data) {
-        if (data.fatal) {
-          console.error('Erro ao carregar stream:', data);
-          if (hls) {
-            hls.destroy();
+        if (!data.episodes) {
+          throw new Error('Informações do episódio não encontradas');
+        }
+
+        // Encontrar o episódio específico
+        let streamUrl = null;
+        Object.entries(data.episodes).forEach(([season, episodes]) => {
+          const foundEpisode = episodes.find(ep => ep.id === episodio.id);
+          if (foundEpisode && foundEpisode.info && foundEpisode.info.movie_data) {
+            streamUrl = foundEpisode.info.movie_data.stream_url;
           }
+        });
+
+        if (!streamUrl) {
+          throw new Error('URL do stream não encontrada');
         }
-      });
 
-      return () => {
-        if (hls) {
-          hls.destroy();
+        // Configurar o player com a URL do stream
+        if (Hls.isSupported()) {
+          const hls = new Hls({
+            xhrSetup: (xhr) => {
+              xhr.withCredentials = false;
+            },
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            maxBufferSize: 60 * 1000 * 1000,
+            maxBufferHole: 0.5,
+            lowLatencyMode: true,
+          });
+
+          hls.loadSource(streamUrl);
+          hls.attachMedia(videoRef.current);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoRef.current.play().catch(err => {
+              console.error('Erro ao iniciar reprodução:', err);
+              setError('Erro ao iniciar a reprodução. Por favor, tente novamente.');
+            });
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.error('Erro de rede:', data);
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.error('Erro de mídia:', data);
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  console.error('Erro fatal:', data);
+                  hls.destroy();
+                  setError('Erro ao reproduzir o vídeo. Por favor, tente novamente.');
+                  break;
+              }
+            }
+          });
+
+          hlsRef.current = hls;
+        } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+          videoRef.current.src = streamUrl;
+          videoRef.current.addEventListener('loadedmetadata', () => {
+            videoRef.current.play().catch(err => {
+              console.error('Erro ao iniciar reprodução:', err);
+              setError('Erro ao iniciar a reprodução. Por favor, tente novamente.');
+            });
+          });
+        } else {
+          setError('Seu navegador não suporta a reprodução deste tipo de vídeo.');
         }
-      };
+      } catch (err) {
+        console.error('Erro ao carregar stream:', err);
+        setError('Erro ao carregar o vídeo. Por favor, tente novamente.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (serie && episodio) {
+      fetchStreamUrl();
     }
-  }, [currentEpisodeData]);
 
-  const handleSeasonChange = (e) => {
-    setCurrentSeason(Number(e.target.value));
-    setCurrentEpisode(1); // Reset episódio ao mudar de temporada
-  };
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+    };
+  }, [serie, episodio]);
 
-  const handleEpisodeChange = (e) => {
-    setCurrentEpisode(Number(e.target.value));
-  };
-
-  const nextEpisode = () => {
-    const episodes = series.episodes.filter(ep => ep.season === currentSeason);
-    const currentIndex = episodes.findIndex(ep => ep.episode === currentEpisode);
-    
-    if (currentIndex < episodes.length - 1) {
-      setCurrentEpisode(episodes[currentIndex + 1].episode);
-    } else if (currentSeason < series.totalSeasons) {
-      setCurrentSeason(currentSeason + 1);
-      setCurrentEpisode(1);
-    }
-  };
-
-  const previousEpisode = () => {
-    const episodes = series.episodes.filter(ep => ep.season === currentSeason);
-    const currentIndex = episodes.findIndex(ep => ep.episode === currentEpisode);
-    
-    if (currentIndex > 0) {
-      setCurrentEpisode(episodes[currentIndex - 1].episode);
-    } else if (currentSeason > 1) {
-      const previousSeasonEpisodes = series.episodes.filter(ep => ep.season === currentSeason - 1);
-      setCurrentSeason(currentSeason - 1);
-      setCurrentEpisode(previousSeasonEpisodes[previousSeasonEpisodes.length - 1].episode);
-    }
-  };
-
-  if (!series) return null;
-
-  const seasons = Array.from(
-    new Set(series.episodes.map(episode => episode.season))
-  ).sort((a, b) => a - b);
-
-  const episodes = series.episodes
-    .filter(episode => episode.season === currentSeason)
-    .sort((a, b) => a.episode - b.episode);
-
-  return (
-    <div className="player-series-container">
-      <div className="player-header">
-        <h2>{series.title}</h2>
-        <button className="close-button" onClick={onClose}>&times;</button>
-      </div>
-
-      <div className="player-controls">
-        <select value={currentSeason} onChange={handleSeasonChange}>
-          {seasons.map(season => (
-            <option key={season} value={season}>
-              Temporada {season}
-            </option>
-          ))}
-        </select>
-
-        <select value={currentEpisode} onChange={handleEpisodeChange}>
-          {episodes.map(episode => (
-            <option key={episode.episode} value={episode.episode}>
-              Episódio {episode.episode}
-            </option>
-          ))}
-        </select>
-
-        <div className="navigation-buttons">
-          <button onClick={previousEpisode} disabled={currentSeason === 1 && currentEpisode === 1}>
-            <FaStepBackward /> Anterior
-          </button>
-          <button onClick={nextEpisode} disabled={currentSeason === series.totalSeasons && currentEpisode === episodes[episodes.length - 1].episode}>
-            Próximo <FaStepForward />
-          </button>
+  if (error) {
+    return (
+      <div className="player-container">
+        <div className="player-error">
+          <p>{error}</p>
+          <button onClick={onClose}>Voltar</button>
         </div>
       </div>
+    );
+  }
 
-      <div className="player-wrapper">
-        <video
-          ref={playerRef}
-          controls
-          autoPlay
-          playsInline
-          className="video-player"
-        />
-      </div>
+  return (
+    <div className="player-container">
+      {isLoading && (
+        <div className="player-loading">
+          <div className="spinner"></div>
+          <p>Carregando vídeo...</p>
+        </div>
+      )}
+      
+      <video
+        ref={videoRef}
+        className="player-video"
+        controls
+        playsInline
+        autoPlay
+        crossOrigin="anonymous"
+      />
 
-      <div className="episode-info">
-        <h3>Temporada {currentSeason} - Episódio {currentEpisode}</h3>
+      <div className="player-info">
+        <h2>{serie.name}</h2>
+        <h3>{episodio.title || `Episódio ${episodio.episode_num}`}</h3>
+        <button className="player-close" onClick={onClose}>Voltar</button>
       </div>
     </div>
   );
-}
+};
 
 export default PlayerSeries;

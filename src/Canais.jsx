@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import Hls from 'hls.js';
+import Navigation from './components/Navigation';
 import './Canais.css';
 
 const Canais = () => {
@@ -246,85 +247,88 @@ const Canais = () => {
   if (error) return <div className="error">{error}</div>;
 
   return (
-    <div className="container">
-      <div className="content-wrapper">
-        <div className="categories">
-          <button
-            className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setSelectedCategory('all')}
-          >
-            Todos os Canais
-          </button>
-          <button
-            className={`category-button ${selectedCategory === 'favorites' ? 'active' : ''}`}
-            onClick={() => setSelectedCategory('favorites')}
-          >
-            Favoritos
-          </button>
-          {categories.map(category => (
-            <React.Fragment key={`cat-${category.category_id}`}>
-              <button
-                className={`category-button main-category ${selectedCategory === category.category_id ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(category.category_id)}
-              >
-                {category.category_name}
-              </button>
-              {category.subcategories && category.subcategories.map(sub => (
+    <div className="canais-container">
+      <div className="container">
+        <div className="content-wrapper">
+          <div className="categories">
+            <button
+              className={`category-button ${selectedCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('all')}
+            >
+              Todos os Canais
+            </button>
+            <button
+              className={`category-button ${selectedCategory === 'favorites' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('favorites')}
+            >
+              Favoritos
+            </button>
+            {categories.map(category => (
+              <React.Fragment key={`cat-${category.category_id}`}>
                 <button
-                  key={sub.category_id}
-                  className={`category-button subcategory ${selectedCategory === sub.category_id ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(sub.category_id)}
+                  className={`category-button main-category ${selectedCategory === category.category_id ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(category.category_id)}
                 >
-                  {sub.category_name}
+                  {category.category_name}
                 </button>
-              ))}
-            </React.Fragment>
-          ))}
-        </div>
+                {category.subcategories && category.subcategories.map(sub => (
+                  <button
+                    key={sub.category_id}
+                    className={`category-button subcategory ${selectedCategory === sub.category_id ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(sub.category_id)}
+                  >
+                    {sub.category_name}
+                  </button>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
 
-        <div className="channel-list">
-          {filteredChannels().length === 0 ? (
-            <div className="no-channels">
-              Nenhum canal encontrado nesta categoria
-            </div>
-          ) : (
-            filteredChannels().map((channel, index) => (
-              <div
-                key={`channel-${channel.id}-${index}`}
-                className={`channel-item ${selectedChannel?.id === channel.id ? 'active' : ''}`}
-                onClick={() => setSelectedChannel(channel)}
-              >
-                <img
-                  src={channel.stream_icon || channel.logo}
-                  alt={`${channel.name} logo`}
-                  className="channel-logo"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel.name)}&background=random&color=fff&size=128`;
-                  }}
-                  loading="lazy"
-                />
-                <span className="channel-name">{channel.name}</span>
-                <button
-                  className="favorite-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(channel);
-                  }}
-                >
-                  {favorites.some(fav => fav.id === channel.id) ? (
-                    <FaHeart />
-                  ) : (
-                    <FaRegHeart />
-                  )}
-                </button>
+          <div className="channel-list">
+            {filteredChannels().length === 0 ? (
+              <div className="no-channels">
+                Nenhum canal encontrado nesta categoria
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              filteredChannels().map((channel, index) => (
+                <div
+                  key={`channel-${channel.id}-${index}`}
+                  className={`channel-item ${selectedChannel?.id === channel.id ? 'active' : ''}`}
+                  onClick={() => setSelectedChannel(channel)}
+                >
+                  <img
+                    src={channel.stream_icon || channel.logo}
+                    alt={`${channel.name} logo`}
+                    className="channel-logo"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel.name)}&background=random&color=fff&size=128`;
+                    }}
+                    loading="lazy"
+                  />
+                  <span className="channel-name">{channel.name}</span>
+                  <button
+                    className="favorite-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(channel);
+                    }}
+                  >
+                    {favorites.some(fav => fav.id === channel.id) ? (
+                      <FaHeart />
+                    ) : (
+                      <FaRegHeart />
+                    )}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
 
-        {renderCurrentChannel()}
+          {renderCurrentChannel()}
+        </div>
       </div>
+      <Navigation />
     </div>
   );
 };

@@ -9,7 +9,6 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const playAttemptRef = useRef(null);
   const abortControllerRef = useRef(new AbortController());
 
@@ -40,7 +39,6 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
       playAttemptRef.current = setTimeout(async () => {
         try {
           await videoRef.current.play();
-          setIsPlaying(true);
         } catch (err) {
           console.error('Erro ao reproduzir:', err);
           if (err.name !== 'AbortError') {
@@ -91,8 +89,6 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
       abrEwmaDefaultEstimate: 500000,
       testBandwidth: true,
       progressive: true,
-      lowLatencyMode: true,
-      enableWorker: true,
       debug: false
     });
 
@@ -133,7 +129,6 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
   const loadVideo = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    setIsPlaying(false);
 
     if (!movie?.stream_id || !movie?.container_extension) {
       setError('Informações do filme incompletas.');
@@ -176,17 +171,24 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
   useEffect(() => {
     loadVideo();
 
+    // Armazena as referências atuais em variáveis locais
+    const video = videoRef.current;
+    const abortController = abortControllerRef.current;
+    const playAttempt = playAttemptRef.current;
+
     return () => {
-      if (playAttemptRef.current) {
-        clearTimeout(playAttemptRef.current);
+      if (playAttempt) {
+        clearTimeout(playAttempt);
       }
       destroyHls();
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
       }
-      abortControllerRef.current.abort();
+      if (abortController) {
+        abortController.abort();
+      }
     };
   }, [loadVideo, destroyHls]);
 
@@ -232,8 +234,6 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
           preload="auto"
           playsInline
           onCanPlay={handleVideoReady}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
           onError={(e) => {
             console.error('Erro no elemento de vídeo:', e);
             setError('Erro ao carregar o vídeo. Tente novamente.');

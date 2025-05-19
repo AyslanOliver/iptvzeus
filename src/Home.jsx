@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import './Home.css';
 
 function Home() {
   const [favoriteChannels, setFavoriteChannels] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedFavorites = localStorage.getItem('favoriteChannels');
@@ -11,6 +12,11 @@ function Home() {
       setFavoriteChannels(JSON.parse(savedFavorites));
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('iptvUser');
+    navigate('/'); // ou '/login' se sua rota de login for diferente
+  };
 
   return (
     <div className="lobby-container">
@@ -44,6 +50,33 @@ function Home() {
             <span className="favorite-count">{favoriteChannels.length}</span>
           )}
         </Link>
+
+        <Link to="/perfil" className="menu-button menu-button-profile">
+          <i className="fas fa-user"></i>
+          <span>Perfil</span>
+        </Link>
+
+        <button
+          onClick={handleLogout}
+          className="menu-button menu-button-logout"
+          style={{
+            marginTop: 12,
+            background: '#e50914',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            fontWeight: 600,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
+          }}
+        >
+          <i className="fas fa-sign-out-alt"></i>
+          <span>Sair</span>
+        </button>
       </div>
     </div>
   );

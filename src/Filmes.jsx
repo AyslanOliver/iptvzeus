@@ -3,6 +3,7 @@ import './Filmes.css';
 import PlayerFilmes from './components/PlayerFilmes';
 import Hls from 'hls.js';
 import ModalDetalhesFilme from './components/ModalDetalhesFilme';
+import Navigation from './components/Navigation';
 
 // Componente de imagem com fallback
 const FilmeThumbnail = ({ src, alt, title }) => {
@@ -195,103 +196,106 @@ function Filmes() {
   ], []);
 
   return (
-    <div className="filmes-page">
-      <div className="filmes-header">
-        <h1 className="filmes-title">Filmes</h1>
-        <div className="filmes-controls">
-          <div className="search-bar">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Buscar filmes..."
-              value={searchTerm}
-              onChange={handleSearch}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Sidebar para categorias */}
-      <div className="categories-sidebar">
-        <h2>Categorias</h2>
-        <div className="categories-list">
-          <div 
-            className={`category-item ${selectedCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setSelectedCategory('all')}
-          >
-            <i className="fas fa-film"></i>
-            <span>Todas Categorias</span>
-          </div>
-          {categories.map(category => (
-            <div 
-              key={category.category_id} 
-              className={`category-item ${selectedCategory === category.category_id ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(category.category_id)}
-            >
-              <i className="fas fa-folder"></i>
-              <span>{category.category_name}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Conteúdo principal dos filmes */}
-      <div className="filmes-main-content">
-        <div className="filmes-grid">
-          {filteredFilmes().map(filme => (
-            <div
-              key={filme.id}
-              className="filme-card"
-              onClick={() => handleFilmeClick(filme)}
-            >
-              <FilmeThumbnail
-                src={filme.thumbnail}
-                alt={filme.title}
-                title={filme.title}
+    <div className="filmes-container">
+      <div className="filmes-page">
+        <div className="filmes-header">
+          <h1 className="filmes-title">Filmes</h1>
+          <div className="filmes-controls">
+            <div className="search-bar">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Buscar filmes..."
+                value={searchTerm}
+                onChange={handleSearch}
               />
-              <div className="filme-info">
-                <h3 className="filme-title">{filme.title}</h3>
-                <p className="filme-description">{filme.description}</p>
-                <div className="filme-details">
-                  <span className="filme-year">
-                    <i className="fas fa-calendar"></i>
-                    {filme.year}
-                  </span>
-                  <span className="filme-duration">
-                    <i className="fas fa-clock"></i>
-                    {filme.duration}
-                  </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar para categorias */}
+        <div className="categories-sidebar">
+          <h2>Categorias</h2>
+          <div className="categories-list">
+            <div 
+              className={`category-item ${selectedCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('all')}
+            >
+              <i className="fas fa-film"></i>
+              <span>Todas Categorias</span>
+            </div>
+            {categories.map(category => (
+              <div 
+                key={category.category_id} 
+                className={`category-item ${selectedCategory === category.category_id ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(category.category_id)}
+              >
+                <i className="fas fa-folder"></i>
+                <span>{category.category_name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Conteúdo principal dos filmes */}
+        <div className="filmes-main-content">
+          <div className="filmes-grid">
+            {filteredFilmes().map(filme => (
+              <div
+                key={filme.id}
+                className="filme-card"
+                onClick={() => handleFilmeClick(filme)}
+              >
+                <FilmeThumbnail
+                  src={filme.thumbnail}
+                  alt={filme.title}
+                  title={filme.title}
+                />
+                <div className="filme-info">
+                  <h3 className="filme-title">{filme.title}</h3>
+                  <p className="filme-description">{filme.description}</p>
+                  <div className="filme-details">
+                    <span className="filme-year">
+                      <i className="fas fa-calendar"></i>
+                      {filme.year}
+                    </span>
+                    <span className="filme-duration">
+                      <i className="fas fa-clock"></i>
+                      {filme.duration}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {loading && <div className="loading">Carregando filmes...</div>}
-          {error && <div className="error">{error}</div>}
-          {playerLoading && (
-            <div className="player-loading">
-              Carregando filme...
-            </div>
+            ))}
+            {loading && <div className="loading">Carregando filmes...</div>}
+            {error && <div className="error">{error}</div>}
+            {playerLoading && (
+              <div className="player-loading">
+                Carregando filme...
+              </div>
+            )}
+          </div>
+          {modalFilme && (
+            <ModalDetalhesFilme
+              filme={modalFilme}
+              onClose={() => setModalFilme(null)}
+              onAssistir={handleAssistir}
+            />
+          )}
+          {selectedFilme && (
+            <PlayerFilmes
+              movie={selectedFilme}
+              onClose={handleClosePlayer}
+              autoPlay={true}
+              onReady={() => setPlayerLoading(false)}
+              onClick={() => setPlayerLoading(true)}
+            />
           )}
         </div>
-        {modalFilme && (
-          <ModalDetalhesFilme
-            filme={modalFilme}
-            onClose={() => setModalFilme(null)}
-            onAssistir={handleAssistir}
-          />
-        )}
-        {selectedFilme && (
-          <PlayerFilmes
-            movie={selectedFilme}
-            onClose={handleClosePlayer}
-            autoPlay={true}
-            onReady={() => setPlayerLoading(false)}
-            onClick={() => setPlayerLoading(true)}
-          />
-        )}
-      </div> 
-    </div> 
- );
+      </div>
+      <Navigation />
+    </div>
+  );
 }
 
 export default Filmes;

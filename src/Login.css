@@ -18,119 +18,214 @@ body.login-page-body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  width: 100%; /* Garante que o container ocupe toda a largura */
-  padding: 15px; /* Adiciona padding para evitar que o conteúdo cole nas bordas em telas pequenas */
+  width: 100%;
+  padding: 20px;
   box-sizing: border-box;
-  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://assets.nflxext.com/ffe/siteui/vlv3/00103100-5b45-4d4f-af32-342649f1bda5/4f0437a7-333c-42f9-801e-dce7a032c30c/BR-pt-20230821-popsignuptwoweeks-perspective_alpha_website_large.jpg');
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('https://assets.nflxext.com/ffe/siteui/vlv3/00103100-5b45-4d4f-af32-342649f1bda5/4f0437a7-333c-42f9-801e-dce7a032c30c/BR-pt-20230821-popsignuptwoweeks-perspective_alpha_website_large.jpg');
   background-size: cover;
   background-position: center;
+  opacity: 0.3;
+  z-index: 0;
 }
 
 /* Caixa de login */
 .login-box {
-  background: rgba(0, 0, 0, 0.8); /* Aumenta um pouco a opacidade para melhor contraste */
-  padding: 40px 25px; /* Ajustado padding para telas menores */
-  border-radius: 8px; /* Bordas um pouco mais suaves */
-  text-align: left;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 40px;
+  border-radius: 16px;
   width: 100%;
-  max-width: 400px; /* Levemente reduzido para melhor encaixe */
-  box-sizing: border-box;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Título */
-.login-box h1 {
-  margin-bottom: 24px;
+.logo-container {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.logo-container h1 {
   color: #ffffff;
-  font-size: 28px; /* Reduzido para telas menores */
-  font-weight: 600; /* Aumenta o peso da fonte */
+  font-size: 42px;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+  letter-spacing: 2px;
+}
+
+.logo-subtitle {
+  color: #e50914;
+  font-size: 16px;
+  margin-top: 8px;
+  letter-spacing: 1px;
 }
 
 /* Input groups */
 .input-group {
   position: relative;
-  margin-bottom: 20px; /* Aumentado espaçamento */
+  margin-bottom: 16px;
 }
 
-.input-group i {
+.input-icon {
   position: absolute;
-  left: 18px; /* Ajustado ícone */
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #a0a0a0; /* Cor do ícone mais suave */
-  font-size: 18px; /* Tamanho do ícone */
+  color: #666;
+  font-size: 16px;
+  transition: color 0.3s ease;
+}
+
+.input-group input {
+  width: 68%;
+  padding: 15px 40px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+  border-color: #e50914;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+.input-group input:focus + .input-icon {
+  color: #e50914;
+}
+
+.input-group input.error {
+  border-color: #e50914;
+  animation: shake 0.5s ease-in-out;
 }
 
 .password-toggle {
   position: absolute;
-  right: 18px;
+  right: 60px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #a0a0a0;
+  color: #666;
   cursor: pointer;
-  padding: 0;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 8px;
   transition: color 0.3s ease;
-  z-index: 2;
-  width: 28px; /* Aumentado área de toque */
-  height: 28px; /* Aumentado área de toque */
 }
 
 .password-toggle:hover {
-  color: #ffffff;
-}
-
-.login-box input {
-  width: 100%;
-  padding: 18px 48px; /* Aumentado padding vertical e para ícones */
-  border: 1px solid #444; /* Borda sutil */
-  border-radius: 6px; /* Bordas mais suaves */
-  background: #282828; /* Fundo um pouco mais claro */
-  color: #ffffff;
-  font-size: 16px;
-  line-height: 1.5;
-  outline: none;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-}
-
-.login-box input::placeholder {
-  color: #8c8c8c;
-}
-
-.login-box input:focus {
-  background: #333333;
-  border-color: #e50914; /* Destaque na cor da marca */
-  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
+  color: #e50914;
 }
 
 /* Botão */
-.login-box button {
-  width: 100%;
-  padding: 18px; /* Aumentado padding */
-  margin-top: 28px; /* Aumentado espaçamento */
+button[type="submit"] {
+  width: 80%;
+  padding: 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #e50914;
   color: #ffffff;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.login-box button:hover {
-  background: #f40612;
+button[type="submit"]:hover {
+  background: #db585e;
+  transform: translateY(-2px);
+}
+
+button[type="submit"]:active {
+  transform: translateY(0);
+}
+
+button[type="submit"].loading {
+  background: #e50914;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
 }
 
 /* Mensagem de erro */
-.error {
-  margin-top: 18px;
-  color: #e87c03;
-  font-size: 14px; /* Aumentado tamanho da fonte */
-  text-align: center; /* Centraliza a mensagem de erro */
+.error-message {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(229, 9, 20, 0.1);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.error-message span {
+  color: #e50914;
+  font-size: 14px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.animate {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-box {
+    padding: 25px 20px;
+  }
+  
+  .logo-container h1 {
+    font-size: 32px;
+  }
+  
+  .input-group input {
+    padding: 10px 36px;
+    font-size: 13px;
+  }
 }

@@ -4,6 +4,7 @@ import Home from './Home';
 import Canais from './Canais';
 import Filmes from './Filmes';
 import Series from './Series';
+import Perfil from './Perfil';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/canais" element={<Canais />} />
         <Route path="/filmes" element={<Filmes />} />
         <Route path="/series" element={<Series />} />
+        <Route path="/perfil" element={<Perfil />} /> 
       </Routes>
     </Router>
   );
