@@ -4,6 +4,8 @@ import PlayerFilmes from './components/PlayerFilmes';
 import Hls from 'hls.js';
 import ModalDetalhesFilme from './components/ModalDetalhesFilme';
 import Navigation from './components/Navigation';
+import { FaSearch, FaPlay, FaFilm, FaCog, FaVideo } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 // Componente de imagem com fallback
 const FilmeThumbnail = ({ src, alt, title }) => {
@@ -70,6 +72,7 @@ function Filmes() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [playerLoading, setPlayerLoading] = useState(false);
   const [modalFilme, setModalFilme] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -197,22 +200,27 @@ function Filmes() {
 
   return (
     <div className="filmes-container">
-      <div className="filmes-page">
-        <div className="filmes-header">
-          <h1 className="filmes-title">Filmes</h1>
-          <div className="filmes-controls">
-            <div className="search-bar">
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Buscar filmes..."
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-          </div>
+      {/* Barra fixa topo */}
+      <div className="canais-topbar">
+        <div className="titulo">Filmes</div>
+        <div className="search-box">
+          <FaSearch style={{marginRight:8, color:'#ffea70'}} />
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Pesquisar"
+            value={searchTerm}
+            onChange={handleSearch}
+          />
         </div>
-
+        <div className="topbar-actions">
+          <button className="topbar-icon" onClick={() => navigate('/')}><FaPlay /></button>
+          <button className="topbar-icon" onClick={() => navigate('/filmes')}><FaFilm /></button>
+          <button className="topbar-icon" onClick={() => navigate('/series')}><FaVideo /></button>
+          <button className="topbar-icon" onClick={() => navigate('/configuracoes')}><FaCog /></button>
+        </div>
+      </div>
+      <div className="filmes-page">
         {/* Sidebar para categorias */}
         <div className="categories-sidebar">
           <h2>Categorias</h2>

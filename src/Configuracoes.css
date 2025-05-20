@@ -1,0 +1,204 @@
+.config-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a1a3a 60%, #1a2a5a 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 3rem;
+}
+
+.config-title {
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 2.5rem;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px #000a;
+}
+
+.config-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
+  width: 100%;
+  max-width: 600px;
+  padding: 1.5rem;
+  background: rgba(10, 20, 60, 0.95);
+  border-radius: 1.2rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+
+.config-btn {
+  background: rgba(255,255,255,0.07);
+  border: 2px solid rgba(255,255,255,0.13);
+  border-radius: 1rem;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  outline: none;
+  padding: 2.2rem 1rem;
+  position: relative;
+}
+.config-btn i {
+  font-size: 2.2rem;
+  margin-bottom: 0.2rem;
+}
+.config-btn span {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.config-btn:hover, .config-btn:focus {
+  background: #2d5be3;
+  color: #fff;
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 8px 32px rgba(45,91,227,0.18);
+}
+
+.streamtype-badge {
+  margin-top: 0.5rem;
+  background: #00d26a;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.2rem 0.8rem;
+  border-radius: 1rem;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(0,210,106,0.13);
+  display: inline-block;
+}
+
+.modal-streamtype-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10,20,40,0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-streamtype {
+  background: #182a4a;
+  border-radius: 1.2rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  padding: 2.5rem 2rem 2rem 2rem;
+  min-width: 270px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.modal-streamtype h3 {
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.modal-streamtype-btns {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.modal-streamtype-btns button {
+  background: #2d5be3;
+  color: #fff;
+  border: none;
+  border-radius: 0.7rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0.7rem 2.2rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  outline: none;
+}
+.modal-streamtype-btns button.active, .modal-streamtype-btns button:hover {
+  background: #00d26a;
+  color: #fff;
+  transform: scale(1.08);
+}
+.modal-close {
+  background: transparent;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  text-decoration: underline;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.modal-close:hover {
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .config-panel {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    padding: 1rem;
+  }
+  .config-title {
+    font-size: 1.3rem;
+  }
+  .config-btn {
+    font-size: 1rem;
+    padding: 1.2rem 0.5rem;
+  }
+  .config-btn i {
+    font-size: 1.5rem;
+  }
+  .modal-streamtype {
+    padding: 1.2rem 0.5rem 1rem 0.5rem;
+    min-width: 180px;
+  }
+  .modal-streamtype-btns button {
+    font-size: 1rem;
+    padding: 0.6rem 1.2rem;
+  }
+}
+
+.botao-voltar {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+}
+
+.botao-voltar:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.botao-voltar:active {
+  transform: translateY(1px);
+}
+
+.botao-voltar svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+} 

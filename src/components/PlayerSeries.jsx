@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import './PlayerSeries.css';
 
-const PlayerSeries = ({ serie, episodio, onClose }) => {
+const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const videoRef = useRef(null);
@@ -144,6 +144,20 @@ const PlayerSeries = ({ serie, episodio, onClose }) => {
         <h2>{serie.name}</h2>
         <h3>{episodio.title || `Episódio ${episodio.episode_num}`}</h3>
         <button className="player-close" onClick={onClose}>Voltar</button>
+        {episodios && episodios.length > 0 && (
+          <button
+            className="player-next"
+            onClick={() => {
+              const idx = episodios.findIndex(ep => ep.id === episodio.id);
+              if (idx !== -1 && idx < episodios.length - 1) {
+                onNextEpisode(episodios[idx + 1]);
+              }
+            }}
+            disabled={episodios.findIndex(ep => ep.id === episodio.id) === episodios.length - 1}
+          >
+            Próximo Episódio
+          </button>
+        )}
       </div>
     </div>
   );

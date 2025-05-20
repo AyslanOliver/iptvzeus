@@ -2,6 +2,35 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import './Home.css';
 
+const opcoes = [
+  {
+    label: 'TV ao Vivo',
+    icon: 'fas fa-tv',
+    rota: '/canais',
+    destaque: true
+  },
+  {
+    label: 'Filmes',
+    icon: 'fas fa-film',
+    rota: '/filmes'
+  },
+  {
+    label: 'Séries',
+    icon: 'fas fa-video',
+    rota: '/series'
+  },
+  {
+    label: 'Configurações',
+    icon: 'fas fa-cog',
+    rota: '/configuracoes'
+  },
+  {
+    label: 'Lista',
+    icon: 'fas fa-list',
+    rota: '/lista'
+  }
+];
+
 function Home() {
   const [favoriteChannels, setFavoriteChannels] = useState([]);
   const navigate = useNavigate();
@@ -19,65 +48,25 @@ function Home() {
   };
 
   return (
-    <div className="lobby-container">
-      <div className="hero-section">
-        <div className="hero-content">
-          <h1>IPTV Zeus</h1>
-          <p className="hero-description">Acesso ilimitado a milhares de canais, filmes e séries</p>
-        </div>
+    <div className="home-bg">
+      <div className="home-logo">
+        <span className="logo-icone" />
+        <span className="logo-texto">Zeus <span className="logo-iptv">IPTV</span></span>
       </div>
-      
-      <div className="menu-options">
-        <Link to="/canais" className="menu-button menu-button-primary">
-          <i className="fas fa-tv"></i>
-          <span>Canais ao Vivo</span>
-        </Link>
-
-        <Link to="/filmes" className="menu-button menu-button-movies">
-          <i className="fas fa-film"></i>
-          <span>Filmes</span>
-        </Link>
-
-        <Link to="/series" className="menu-button menu-button-series">
-          <i className="fas fa-video"></i>
-          <span>Séries</span>
-        </Link>
-
-        <Link to="/favoritos" className="menu-button menu-button-favorites">
-          <i className="fas fa-heart"></i>
-          <span>Favoritos</span>
-          {favoriteChannels.length > 0 && (
-            <span className="favorite-count">{favoriteChannels.length}</span>
-          )}
-        </Link>
-
-        <Link to="/perfil" className="menu-button menu-button-profile">
-          <i className="fas fa-user"></i>
-          <span>Perfil</span>
-        </Link>
-
-        <button
-          onClick={handleLogout}
-          className="menu-button menu-button-logout"
-          style={{
-            marginTop: 12,
-            background: '#e50914',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 8,
-            fontWeight: 600,
-            fontSize: '1rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          }}
-        >
-          <i className="fas fa-sign-out-alt"></i>
-          <span>Sair</span>
-        </button>
+      <div className="home-panel">
+        {opcoes.map((opcao, idx) => (
+          <button
+            key={opcao.label}
+            className={`home-btn${opcao.destaque ? ' destaque' : ''}`}
+            onClick={() => navigate(opcao.rota)}
+            style={{ gridArea: opcao.destaque && window.innerWidth > 600 ? 'tv' : undefined }}
+          >
+            <i className={opcao.icon}></i>
+            <span>{opcao.label}</span>
+          </button>
+        ))}
       </div>
+      <div className="home-chamada">CONFIGURE e ASSISTA!</div>
     </div>
   );
 }

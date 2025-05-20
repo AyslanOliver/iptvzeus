@@ -8,92 +8,34 @@ import Navigation from './components/Navigation';
 const Series = () => {
   const navigate = useNavigate();
   const [series, setSeries] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [selectedSerie, setSelectedSerie] = useState(null);
   const [selectedEpisodio, setSelectedEpisodio] = useState(null);
   const [modalSerie, setModalSerie] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('Todas');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [playerError, setPlayerError] = useState(null);
 
-  const categories = [
-    'Todas',
-    'AMAZON PRIME',
-    'APPLE+',
-    'BRASIL PARALELO',
-    'CRUNCHYROLL',
-    'DISCOVERY+',
-    'DISNEY+',
-    'EXCLUSIVAS',
-    'GLOBOPLAY',
-    'HISTORY',
-    'HULU',
-    'MAX',
-    'MGM+',
-    'NETFLIX',
-    'PARAMOUNT',
-    'SBT+',
-    'ANIMAÇÃO',
-    'DORAMAS',
-    'KIDS',
-    'LEGENDADO',
-    'MEXICANAS',
-    'NOVELAS',
-    'CURSOS E TUTORIAS',
-    'SCI-FI & FANTASY',
-    'DRAMA',
-    'MISTÉRIO',
-    'ACTION & ADVENTURE',
-    'CRIME',
-    'DOCUMENTÁRIO',
-    'SOAP',
-    'ROMANCE',
-    'FAMÍLIA',
-    'FICÇÃO CIENTÍFICA',
-    'COMÉDIA'
-  ];
-
-  const getCategoryFromName = (name) => {
-    const lowerName = name.toLowerCase();
-    
-    // Verificar plataformas de streaming
-    if (lowerName.includes('netflix')) return 'NETFLIX';
-    if (lowerName.includes('prime') || lowerName.includes('amazon')) return 'AMAZON PRIME';
-    if (lowerName.includes('disney')) return 'DISNEY+';
-    if (lowerName.includes('hbo') || lowerName.includes('max')) return 'MAX';
-    if (lowerName.includes('apple')) return 'APPLE+';
-    if (lowerName.includes('paramount')) return 'PARAMOUNT';
-    if (lowerName.includes('hulu')) return 'HULU';
-    if (lowerName.includes('crunchyroll')) return 'CRUNCHYROLL';
-    if (lowerName.includes('discovery')) return 'DISCOVERY+';
-    if (lowerName.includes('globoplay')) return 'GLOBOPLAY';
-    if (lowerName.includes('history')) return 'HISTORY';
-    if (lowerName.includes('mgm')) return 'MGM+';
-    if (lowerName.includes('sbt')) return 'SBT+';
-    if (lowerName.includes('brasil paralelo')) return 'BRASIL PARALELO';
-
-    // Verificar gêneros e subcategorias
-    if (lowerName.includes('sci-fi') || lowerName.includes('fantasy')) return 'SCI-FI & FANTASY';
-    if (lowerName.includes('drama')) return 'DRAMA';
-    if (lowerName.includes('mistério') || lowerName.includes('misterio')) return 'MISTÉRIO';
-    if (lowerName.includes('action') || lowerName.includes('adventure')) return 'ACTION & ADVENTURE';
-    if (lowerName.includes('crime')) return 'CRIME';
-    if (lowerName.includes('documentário') || lowerName.includes('documentario')) return 'DOCUMENTÁRIO';
-    if (lowerName.includes('soap')) return 'SOAP';
-    if (lowerName.includes('romance')) return 'ROMANCE';
-    if (lowerName.includes('família') || lowerName.includes('familia')) return 'FAMÍLIA';
-    if (lowerName.includes('ficção científica') || lowerName.includes('ficcao cientifica')) return 'FICÇÃO CIENTÍFICA';
-    if (lowerName.includes('comédia') || lowerName.includes('comedia')) return 'COMÉDIA';
-    if (lowerName.includes('anima') || lowerName.includes('cartoon')) return 'ANIMAÇÃO';
-    if (lowerName.includes('drama') || lowerName.includes('dorama')) return 'DORAMAS';
-    if (lowerName.includes('kids') || lowerName.includes('infantil')) return 'KIDS';
-    if (lowerName.includes('legendado')) return 'LEGENDADO';
-    if (lowerName.includes('mexicana')) return 'MEXICANAS';
-    if (lowerName.includes('novela')) return 'NOVELAS';
-    if (lowerName.includes('curso') || lowerName.includes('tutorial')) return 'CURSOS E TUTORIAS';
-    
-    return 'EXCLUSIVAS';
-  };
+  // Carregar categorias de séries da API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem('iptvUser'));
+        if (!user) return;
+        const response = await fetch(`http://nxczs.top/player_api.php?username=${user.username}&password=${user.password}&action=get_series_categories`);
+        if (!response.ok) return;
+        const data = await response.json();
+        setCategories(data.map(cat => ({
+          category_id: cat.category_id,
+          category_name: cat.category_name
+        })));
+      } catch (err) {
+        console.error('Erro ao carregar categorias:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const fetchSeries = async () => {
     try {
@@ -102,29 +44,14 @@ const Series = () => {
         navigate('/login');
         return;
       }
-
-      const response = await fetch(`http://nxczs.top/player_api.php?username=${user.username}&password=${user.password}&action=get_series`);
+      const categoryParam = selectedCategory !== 'all' ? `&category_id=${selectedCategory}` : '';
+      const response = await fetch(`http://nxczs.top/player_api.php?username=${user.username}&password=${user.password}&action=get_series${categoryParam}`);
       if (!response.ok) {
         throw new Error('Erro ao carregar séries');
       }
-
       const data = await response.json();
-      
       if (Array.isArray(data)) {
-        const processedSeries = data.map(serie => {
-          let categoryName = serie.category_name || '';
-          
-          if (!categoryName || !categories.some(cat => categoryName.includes(cat))) {
-            categoryName = getCategoryFromName(serie.name);
-          }
-
-          return {
-            ...serie,
-            category_name: categoryName
-          };
-        });
-
-        setSeries(processedSeries);
+        setSeries(data);
       } else {
         setError('Formato de dados inválido');
       }
@@ -138,7 +65,7 @@ const Series = () => {
 
   useEffect(() => {
     fetchSeries();
-  }, [navigate]);
+  }, [navigate, selectedCategory]);
 
   const handleSerieClick = (serie) => {
     setModalSerie(serie);
@@ -178,26 +105,26 @@ const Series = () => {
         ep => ep.episode_num === episodio.episode_num
       );
 
-      if (!episodeData) {
-        console.log('Episódio não encontrado:', { season: episodio.season, episode: episodio.episode_num });
-        setPlayerError('Não foi possível encontrar o episódio. Por favor, tente novamente.');
-        return;
+      // Buscar a URL do stream em vários campos possíveis
+      let streamUrl = episodeData.direct_source;
+      if (!streamUrl && episodeData.info && episodeData.info.movie_data) {
+        streamUrl = episodeData.info.movie_data.stream_url || episodeData.info.movie_data.url;
+      }
+      if (!streamUrl && episodeData.info) {
+        streamUrl = episodeData.info.url;
       }
 
-      console.log('Episódio encontrado:', episodeData);
-
-      // Verifica se tem a URL do stream
-      if (!episodeData.direct_source) {
+      if (!streamUrl) {
         console.log('URL do stream não encontrada. Campos disponíveis:', Object.keys(episodeData));
         setPlayerError('URL do vídeo não encontrada. Por favor, tente novamente.');
         return;
       }
 
-      console.log('URL do stream encontrada:', episodeData.direct_source);
+      console.log('URL do stream encontrada:', streamUrl);
 
       // Verifica se a URL do episódio é válida
-      if (!validateStreamUrl(episodeData.direct_source)) {
-        console.log('URL inválida:', episodeData.direct_source);
+      if (!validateStreamUrl(streamUrl)) {
+        console.log('URL inválida:', streamUrl);
         setPlayerError('O link do vídeo está inválido ou expirado. Por favor, tente novamente.');
         return;
       }
@@ -207,7 +134,7 @@ const Series = () => {
       // Atualiza o estado com a série e o episódio
       const episodioComUrl = {
         ...episodio,
-        url: episodeData.direct_source
+        url: streamUrl
       };
 
       console.log('Estado antes de atualizar:', { selectedSerie, selectedEpisodio });
@@ -292,12 +219,14 @@ const Series = () => {
     setPlayerError(errorMessage);
   };
 
-  const filteredSeries = selectedCategory === 'Todas' 
-    ? series 
-    : series.filter(serie => {
-        if (!serie.category_name) return false;
-        return serie.category_name.includes(selectedCategory);
-      });
+  // Função para avançar para o próximo episódio
+  const handleNextEpisode = (proximoEpisodio) => {
+    setSelectedEpisodio(proximoEpisodio);
+  };
+
+  const filteredSeries = selectedCategory === 'all'
+    ? series
+    : series.filter(serie => serie.category_id === selectedCategory);
 
   if (selectedSerie && selectedEpisodio) {
     console.log('Renderizando player com:', { selectedSerie, selectedEpisodio });
@@ -334,6 +263,8 @@ const Series = () => {
             episodio={selectedEpisodio}
             onClose={handleClosePlayer}
             onError={handlePlayerError}
+            episodios={series.find(s => s.series_id === selectedSerie.series_id)?.episodes}
+            onNextEpisode={handleNextEpisode}
           />
         )}
       </div>
@@ -369,13 +300,20 @@ const Series = () => {
         <div className="series-sidebar">
           <h2>Categorias</h2>
           <div className="categories-list">
+            <button
+              key="all"
+              className={`category-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('all')}
+            >
+              Todas
+            </button>
             {categories.map((category) => (
               <button
-                key={category}
-                className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(category)}
+                key={category.category_id}
+                className={`category-btn ${selectedCategory === category.category_id ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(category.category_id)}
               >
-                {category}
+                {category.category_name}
               </button>
             ))}
           </div>
