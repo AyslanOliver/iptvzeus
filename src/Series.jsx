@@ -105,15 +105,8 @@ const Series = () => {
         ep => ep.episode_num === episodio.episode_num
       );
 
-      // Buscar a URL do stream em vários campos possíveis
-      let streamUrl = episodeData.direct_source;
-      if (!streamUrl && episodeData.info && episodeData.info.movie_data) {
-        streamUrl = episodeData.info.movie_data.stream_url || episodeData.info.movie_data.url;
-      }
-      if (!streamUrl && episodeData.info) {
-        streamUrl = episodeData.info.url;
-      }
-
+      // Buscar a URL do stream de forma recursiva
+      let streamUrl = findStreamUrl(episodeData);
       if (!streamUrl) {
         console.log('URL do stream não encontrada. Campos disponíveis:', Object.keys(episodeData));
         setPlayerError('URL do vídeo não encontrada. Por favor, tente novamente.');
@@ -369,6 +362,27 @@ const Series = () => {
     </div>
   );
 };
+
+// Função recursiva para buscar qualquer URL de vídeo válida no objeto
+function findStreamUrl(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  for (const key in obj) {
+    if (!obj.hasOwnProperty(key)) continue;
+    const value = obj[key];
+    if (
+      typeof value === 'string' &&
+      value.startsWith('http') &&
+      (value.endsWith('.mp4') || value.endsWith('.m3u8'))
+    ) {
+      return value;
+    }
+    if (typeof value === 'object') {
+      const found = findStreamUrl(value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 export default Series;
   
