@@ -15,7 +15,7 @@ const FilmeThumbnail = ({ src, alt, title }) => {
   const [error, setError] = useState(false);
 
   const MAX_RETRIES = 3;
-  const FALLBACK_IMAGE = 'https://via.placeholder.com/200x300?text=Sem+Imagem';
+  const FALLBACK_IMAGE = '/noimg.png';
 
   const handleError = useCallback(() => {
     if (retryCount < MAX_RETRIES) {

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Series.css';
 import PlayerSeries from './components/PlayerSeries';
 import ModalDetalhesSerie from './components/ModalDetalhesSerie';
 import Navigation from './components/Navigation';
+import { FaSearch, FaPlay, FaFilm, FaVideo, FaCog } from 'react-icons/fa';
 
 const Series = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const Series = () => {
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [playerError, setPlayerError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [episodiosDaSerie, setEpisodiosDaSerie] = useState([]);
 
   // Carregar categorias de séries da API
   useEffect(() => {
@@ -37,7 +40,7 @@ const Series = () => {
     fetchCategories();
   }, []);
 
-  const fetchSeries = async () => {
+  const fetchSeries = useCallback(async () => {
     try {
       const user = JSON.parse(localStorage.getItem('iptvUser'));
       if (!user) {
@@ -61,11 +64,11 @@ const Series = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate, selectedCategory]);
 
   useEffect(() => {
     fetchSeries();
-  }, [navigate, selectedCategory]);
+  }, [fetchSeries]);
 
   const handleSerieClick = (serie) => {
     setModalSerie(serie);
@@ -88,54 +91,18 @@ const Series = () => {
       // Limpa qualquer erro anterior
       setPlayerError(null);
 
-      // Busca a URL do stream
-      const response = await fetch(
-        `http://nxczs.top/player_api.php?username=${user.username}&password=${user.password}&action=get_series_info&series_id=${serie.series_id}`
-      );
+      // Busca a URL do stream diretamente
+      const streamUrl = `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
+      console.log('URL do stream gerada:', streamUrl);
 
-      if (!response.ok) {
-        throw new Error('Erro ao buscar informações do episódio');
-      }
-
-      const data = await response.json();
-      console.log('Dados recebidos da API:', data);
-
-      // Procura o episódio específico nos dados
-      const episodeData = data.episodes?.[episodio.season]?.find(
-        ep => ep.episode_num === episodio.episode_num
-      );
-
-      // Buscar a URL do stream de forma recursiva
-      let streamUrl = findStreamUrl(episodeData);
-      if (!streamUrl) {
-        console.log('URL do stream não encontrada. Campos disponíveis:', Object.keys(episodeData));
-        setPlayerError('URL do vídeo não encontrada. Por favor, tente novamente.');
-        return;
-      }
-
-      console.log('URL do stream encontrada:', streamUrl);
-
-      // Verifica se a URL do episódio é válida
-      if (!validateStreamUrl(streamUrl)) {
-        console.log('URL inválida:', streamUrl);
-        setPlayerError('O link do vídeo está inválido ou expirado. Por favor, tente novamente.');
-        return;
-      }
-
-      console.log('URL válida, iniciando reprodução');
-      
       // Atualiza o estado com a série e o episódio
       const episodioComUrl = {
         ...episodio,
         url: streamUrl
       };
 
-      console.log('Estado antes de atualizar:', { selectedSerie, selectedEpisodio });
-      
       setSelectedSerie(serie);
       setSelectedEpisodio(episodioComUrl);
-      
-      console.log('Estado após atualizar:', { serie, episodioComUrl });
       
       // Fecha o modal
       setModalSerie(null);
@@ -155,13 +122,6 @@ const Series = () => {
   const validateStreamUrl = (url) => {
     if (!url) return false;
     
-    // Verifica se a URL tem o formato esperado
-    const validDomains = [
-      'extsistemrbr3.ofcs.top',
-      'nxczs.top',
-      'ofcs.top'
-    ];
-    
     try {
       // Verifica se a URL começa com http:// ou https://
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -169,24 +129,10 @@ const Series = () => {
         return false;
       }
 
-      // Verifica se a URL contém um dos domínios válidos
-      const hasValidDomain = validDomains.some(domain => url.includes(domain));
-      if (!hasValidDomain) {
-        console.log('Domínio não encontrado na lista de domínios válidos');
-        return false;
-      }
-
       // Verifica se a URL tem o formato básico esperado
-      const hasValidFormat = url.includes('/series/') && url.includes('.mp4');
+      const hasValidFormat = url.includes('/series/') && url.endsWith('.mp4');
       if (!hasValidFormat) {
         console.log('URL não tem o formato esperado (/series/ e .mp4)');
-        return false;
-      }
-
-      // Verifica se tem o token JWT
-      const hasJwt = url.includes('sjwt=');
-      if (!hasJwt) {
-        console.log('URL não contém token JWT');
         return false;
       }
 
@@ -214,6 +160,7 @@ const Series = () => {
 
   // Função para avançar para o próximo episódio
   const handleNextEpisode = (proximoEpisodio) => {
+    console.log('Mudando para próximo episódio:', proximoEpisodio);
     setSelectedEpisodio(proximoEpisodio);
   };
 
@@ -221,45 +168,80 @@ const Series = () => {
     ? series
     : series.filter(serie => serie.category_id === selectedCategory);
 
+  // Adiciona filtro de busca
+  const searchedSeries = searchTerm
+    ? filteredSeries.filter(serie => 
+        serie.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (serie.category_name && serie.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    : filteredSeries;
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
   if (selectedSerie && selectedEpisodio) {
     console.log('Renderizando player com:', { selectedSerie, selectedEpisodio });
     return (
       <div className="series-container">
-        {playerError ? (
-          <div className="player-error">
-            <div className="error-message">
-              <h2>Erro ao carregar o vídeo</h2>
-              <p>{playerError}</p>
-              <div className="error-actions">
-                <button 
-                  className="back-button"
-                  onClick={handleClosePlayer}
-                >
-                  Voltar
-                </button>
-                <button 
-                  className="retry-button"
-                  onClick={() => {
-                    setPlayerError(null);
-                    // Força o player a tentar carregar novamente
-                    setSelectedEpisodio({...selectedEpisodio});
-                  }}
-                >
-                  Tentar Novamente
-                </button>
+        {/* Barra fixa topo */}
+        <div className="canais-topbar">
+          <div className="titulo">Séries</div>
+          <div className="search-box">
+            <FaSearch style={{marginRight:8, color:'#ffea70'}} />
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Pesquisar"
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </div>
+          <div className="topbar-actions">
+            <button className="topbar-icon" onClick={() => navigate('/')}><FaPlay /></button>
+            <button className="topbar-icon" onClick={() => navigate('/filmes')}><FaFilm /></button>
+            <button className="topbar-icon" onClick={() => navigate('/series')}><FaVideo /></button>
+            <button className="topbar-icon" onClick={() => navigate('/configuracoes')}><FaCog /></button>
+          </div>
+        </div>
+
+        <div className="series-content">
+          {playerError ? (
+            <div className="player-error">
+              <div className="error-message">
+                <h2>Erro ao carregar o vídeo</h2>
+                <p>{playerError}</p>
+                <div className="error-actions">
+                  <button 
+                    className="back-button"
+                    onClick={handleClosePlayer}
+                  >
+                    Voltar
+                  </button>
+                  <button 
+                    className="retry-button"
+                    onClick={() => {
+                      setPlayerError(null);
+                      // Força o player a tentar carregar novamente
+                      setSelectedEpisodio({...selectedEpisodio});
+                    }}
+                  >
+                    Tentar Novamente
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <PlayerSeries
-            serie={selectedSerie}
-            episodio={selectedEpisodio}
-            onClose={handleClosePlayer}
-            onError={handlePlayerError}
-            episodios={series.find(s => s.series_id === selectedSerie.series_id)?.episodes}
-            onNextEpisode={handleNextEpisode}
-          />
-        )}
+          ) : (
+            <PlayerSeries
+              serie={selectedSerie}
+              episodio={selectedEpisodio}
+              onClose={handleClosePlayer}
+              onError={handlePlayerError}
+              episodios={episodiosDaSerie}
+              onNextEpisode={handleNextEpisode}
+            />
+          )}
+        </div>
       </div>
     );
   }
@@ -288,8 +270,29 @@ const Series = () => {
 
   return (
     <div className="series-container">
-      <Navigation />
+      {/* Barra fixa topo */}
+      <div className="canais-topbar">
+        <div className="titulo">Séries</div>
+        <div className="search-box">
+          <FaSearch style={{marginRight:8, color:'#ffea70'}} />
+          <input
+            className="search-input"
+            type="text"
+            placeholder="Pesquisar séries..."
+            value={searchTerm}
+            onChange={handleSearch}
+          />
+        </div>
+        <div className="topbar-actions">
+          <button className="topbar-icon" onClick={() => navigate('/')}><FaPlay /></button>
+          <button className="topbar-icon" onClick={() => navigate('/filmes')}><FaFilm /></button>
+          <button className="topbar-icon" onClick={() => navigate('/series')}><FaVideo /></button>
+          <button className="topbar-icon" onClick={() => navigate('/configuracoes')}><FaCog /></button>
+        </div>
+      </div>
+
       <div className="series-content">
+        <Navigation />
         <div className="series-sidebar">
           <h2>Categorias</h2>
           <div className="categories-list">
@@ -313,13 +316,13 @@ const Series = () => {
         </div>
 
         <div className="series-main">
-          {filteredSeries.length === 0 ? (
+          {searchedSeries.length === 0 ? (
             <div className="no-results">
-              <p>Nenhuma série encontrada nesta categoria.</p>
+              <p>{searchTerm ? 'Nenhuma série encontrada para sua busca.' : 'Nenhuma série encontrada nesta categoria.'}</p>
             </div>
           ) : (
             <div className="series-grid">
-              {filteredSeries.map((serie) => (
+              {searchedSeries.map((serie) => (
                 <div
                   key={serie.series_id}
                   className="serie-card"
@@ -331,7 +334,7 @@ const Series = () => {
                       alt={serie.name}
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = '/placeholder.jpg';
+                        e.target.src = '/noimg.png';
                       }}
                     />
                   </div>
@@ -362,27 +365,6 @@ const Series = () => {
     </div>
   );
 };
-
-// Função recursiva para buscar qualquer URL de vídeo válida no objeto
-function findStreamUrl(obj) {
-  if (!obj || typeof obj !== 'object') return null;
-  for (const key in obj) {
-    if (!obj.hasOwnProperty(key)) continue;
-    const value = obj[key];
-    if (
-      typeof value === 'string' &&
-      value.startsWith('http') &&
-      (value.endsWith('.mp4') || value.endsWith('.m3u8'))
-    ) {
-      return value;
-    }
-    if (typeof value === 'object') {
-      const found = findStreamUrl(value);
-      if (found) return found;
-    }
-  }
-  return null;
-}
 
 export default Series;
   

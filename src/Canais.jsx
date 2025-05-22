@@ -186,12 +186,16 @@ const Canais = () => {
         fragLoadingMaxRetryTimeout: 60000,
         enableWorker: true,
         lowLatencyMode: true,
+        manifestLoadingTimeOut: 20000,
+        levelLoadingTimeOut: 20000,
+        fragLoadingTimeOut: 20000
       });
       let retryCount = 0;
       const maxRetries = 10;
       let retryTimeout = null;
+      let playPromise = null;
 
-      const reloadPlayer = () => {
+      const reloadPlayer = async () => {
         if (hls) {
           hls.destroy();
         }
@@ -207,10 +211,31 @@ const Canais = () => {
           fragLoadingMaxRetryTimeout: 60000,
           enableWorker: true,
           lowLatencyMode: true,
+          manifestLoadingTimeOut: 20000,
+          levelLoadingTimeOut: 20000,
+          fragLoadingTimeOut: 20000
         });
         hls.on(Hls.Events.ERROR, onErrorHandler);
         hls.loadSource(streamUrl);
         hls.attachMedia(video);
+
+        try {
+          // Cancela qualquer reprodução anterior
+          if (playPromise) {
+            try {
+              await playPromise;
+            } catch (e) {
+              // Ignora erros de reprodução anterior
+            }
+          }
+          
+          playPromise = video.play();
+          await playPromise;
+        } catch (err) {
+          console.error('Erro ao iniciar reprodução após recarregar:', err);
+        } finally {
+          playPromise = null;
+        }
       };
 
       const onErrorHandler = (event, data) => {
@@ -253,6 +278,9 @@ const Canais = () => {
         if (hls) hls.destroy();
         if (retryTimeout) clearTimeout(retryTimeout);
         clearInterval(watchdog);
+        if (playPromise) {
+          playPromise.catch(() => {}); // Ignora erros de reprodução ao desmontar
+        }
       };
     }
   }, [selectedChannel]);

@@ -134,6 +134,77 @@
   }
 }
 
+@media (max-width: 480px) {
+  .player-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .player-wrapper {
+    padding: 0.3rem;
+  }
+
+  .video-player {
+    width: 100%;
+    height: auto;
+  }
+
+  .movie-info {
+    padding: 0.8rem;
+  }
+
+  .movie-description {
+    font-size: 0.9rem;
+  }
+
+  .movie-year,
+  .movie-genre {
+    font-size: 0.8rem;
+  }
+
+  .control-button {
+    font-size: 1.1rem;
+    padding: 0.6rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .player-header h2 {
+    font-size: 1rem;
+  }
+
+  .player-wrapper {
+    padding: 0.2rem;
+  }
+
+  .movie-info {
+    padding: 0.6rem;
+  }
+
+  .movie-description {
+    font-size: 0.85rem;
+  }
+
+  .movie-year,
+  .movie-genre {
+    font-size: 0.75rem;
+  }
+
+  .control-button {
+    font-size: 1rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (hover: none) {
+  .control-button:hover {
+    transform: none;
+  }
+
+  .control-button:active {
+    opacity: 0.7;
+  }
+}
+
 .progress-slider:hover {
   height: 6px;
 }

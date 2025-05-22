@@ -11,6 +11,7 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
   const [retryCount, setRetryCount] = useState(0);
   const playAttemptRef = useRef(null);
   const abortControllerRef = useRef(new AbortController());
+  const playPromiseRef = useRef(null);
 
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 2000;
@@ -30,6 +31,15 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
     if (!videoRef.current) return;
 
     try {
+      // Cancela qualquer tentativa anterior de reprodução
+      if (playPromiseRef.current) {
+        try {
+          await playPromiseRef.current;
+        } catch (e) {
+          // Ignora erros de reprodução anterior
+        }
+      }
+
       // Limpa qualquer tentativa anterior
       if (playAttemptRef.current) {
         clearTimeout(playAttemptRef.current);
@@ -38,12 +48,16 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
       // Aguarda um pequeno delay para garantir que o vídeo está pronto
       playAttemptRef.current = setTimeout(async () => {
         try {
-          await videoRef.current.play();
+          // Armazena a promessa de reprodução
+          playPromiseRef.current = videoRef.current.play();
+          await playPromiseRef.current;
         } catch (err) {
           console.error('Erro ao reproduzir:', err);
           if (err.name !== 'AbortError') {
             setError('Erro ao iniciar a reprodução. Tente novamente.');
           }
+        } finally {
+          playPromiseRef.current = null;
         }
       }, 100);
     } catch (err) {
@@ -89,7 +103,16 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
       abrEwmaDefaultEstimate: 500000,
       testBandwidth: true,
       progressive: true,
-      debug: false
+      debug: false,
+      manifestLoadingTimeOut: 20000,
+      manifestLoadingMaxRetry: 6,
+      manifestLoadingRetryDelay: 1000,
+      levelLoadingTimeOut: 20000,
+      levelLoadingMaxRetry: 6,
+      levelLoadingRetryDelay: 1000,
+      fragLoadingTimeOut: 20000,
+      fragLoadingMaxRetry: 6,
+      fragLoadingRetryDelay: 1000
     });
 
     hls.on(Hls.Events.MEDIA_ATTACHED, () => {
@@ -146,6 +169,15 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
 
     try {
       if (videoRef.current) {
+        // Cancela qualquer reprodução em andamento
+        if (playPromiseRef.current) {
+          try {
+            await playPromiseRef.current;
+          } catch (e) {
+            // Ignora erros de reprodução anterior
+          }
+        }
+        
         videoRef.current.pause();
         videoRef.current.removeAttribute('src');
         videoRef.current.load();
@@ -175,10 +207,14 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
     const video = videoRef.current;
     const abortController = abortControllerRef.current;
     const playAttempt = playAttemptRef.current;
+    const playPromise = playPromiseRef.current;
 
     return () => {
       if (playAttempt) {
         clearTimeout(playAttempt);
+      }
+      if (playPromise) {
+        playPromise.catch(() => {}); // Ignora erros de reprodução ao desmontar
       }
       destroyHls();
       if (video) {

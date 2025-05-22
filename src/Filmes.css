@@ -407,4 +407,54 @@
     line-clamp: 2;
   }
 }
+
+@media (max-width: 360px) {
+  .filmes-page {
+    padding: 8px;
+  }
+
+  .filmes-header {
+    padding: 10px;
+  }
+
+  .filmes-title {
+    font-size: 1.3rem;
+  }
+
+  .filmes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+  }
+
+  .filme-thumbnail-container {
+    height: 180px;
+  }
+
+  .filme-info {
+    padding: 8px;
+  }
+
+  .filme-title {
+    font-size: 0.85rem;
+  }
+
+  .filme-details {
+    font-size: 0.75rem;
+  }
+}
+
+@media (hover: none) {
+  .filme-card:hover {
+    transform: none;
+  }
+
+  .category-item:hover {
+    transform: none;
+  }
+
+  .filme-card:active,
+  .category-item:active {
+    opacity: 0.7;
+  }
+}
   

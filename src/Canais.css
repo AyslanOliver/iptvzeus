@@ -316,36 +316,36 @@
 
 @media (max-width: 768px) {
   .container {
-    flex-direction: column;
-    padding: 10px; /* Aumentado padding */
+    padding: 8px;
+    gap: 8px;
   }
 
-  .categories,
+  .content-wrapper {
+    flex-direction: column;
+  }
+
+  .categories {
+    width: 100%;
+    min-width: unset;
+    height: auto;
+    max-height: 200px;
+  }
+
+  .category-button {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .category-button.main-category {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+
   .channel-list {
     width: 100%;
     height: auto;
     max-height: 45vh; /* Aumentada altura máxima */
     box-sizing: border-box;
-  }
-
-  .categories {
-    margin-bottom: 10px;
-    padding: 12px;
-  }
-
-  .category-button {
-    padding: 12px 15px; /* Aumentado padding */
-    font-size: 0.9rem;
-  }
-
-  .category-button.main-category {
-    font-size: 0.95rem;
-    padding: 14px 15px;
-  }
-
-  .channel-list {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* Ajustado minmax */
-    gap: 10px;
   }
 
   .channel-item {
@@ -395,21 +395,22 @@
 
 @media (max-width: 480px) {
   .container {
-    padding: 8px;
+    padding: 6px;
+    gap: 6px;
   }
+
   .categories {
-    max-height: 35vh;
-    padding: 10px;
+    max-height: 180px;
   }
 
   .category-button {
-    padding: 10px 12px;
-    font-size: 0.85rem;
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
 
   .category-button.main-category {
-    font-size: 0.9rem;
-    padding: 12px 15px;
+    padding: 10px;
+    font-size: 0.85rem;
   }
 
   .channel-list {
@@ -446,6 +447,37 @@
   .epg-item {
     padding: 8px;
     font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .categories {
+    max-height: 160px;
+  }
+
+  .category-button {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+
+  .category-button.main-category {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (hover: none) {
+  .category-button:hover {
+    transform: none;
+  }
+
+  .category-button:active {
+    opacity: 0.7;
   }
 }
 
