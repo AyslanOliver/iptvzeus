@@ -217,6 +217,10 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
         throw new Error('Usuário não autenticado');
       }
 
+      if (!episodio || !episodio.id) {
+        throw new Error('Episódio inválido');
+      }
+
       // Carregar progresso salvo
       const savedProgress = localStorage.getItem(`progress_${episodio.id}`);
       let savedTime = 0;
@@ -228,7 +232,7 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
       }
 
       // Gera a URL do stream
-      const streamUrl = `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
+      const streamUrl = episodio.url || `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
       console.log('URL do stream:', streamUrl);
 
       // Verifica a extensão do arquivo para decidir o método de reprodução
@@ -248,141 +252,45 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
           },
           maxBufferLength: 30,
           maxMaxBufferLength: 60,
-          maxBufferSize: 60 * 1000 * 1000,
-          maxBufferHole: 0.5,
-          lowLatencyMode: true,
-          debug: true,
-          manifestLoadingTimeOut: 20000,
-          manifestLoadingMaxRetry: 6,
-          manifestLoadingRetryDelay: 1000,
-          levelLoadingTimeOut: 20000,
-          levelLoadingMaxRetry: 6,
-          levelLoadingRetryDelay: 1000,
-          fragLoadingTimeOut: 20000,
-          fragLoadingMaxRetry: 6,
-          fragLoadingRetryDelay: 1000
-        });
-
-        hls.loadSource(streamUrl);
-        hls.attachMedia(videoRef.current);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, async () => {
-          console.log('Manifesto carregado');
-          try {
-            if (playPromiseRef.current) {
-              try {
-                await playPromiseRef.current;
-              } catch (e) {
-                // Ignora erros de reprodução anterior
-              }
-            }
-
-            // Define o tempo salvo antes de iniciar a reprodução
-            if (savedTime > 0) {
-              videoRef.current.currentTime = savedTime;
-            }
-
-            playPromiseRef.current = videoRef.current.play();
-            await playPromiseRef.current;
-            setIsPlaying(true);
-            setIsLoading(false);
-          } catch (err) {
-            console.error('Erro ao iniciar reprodução:', err);
-            setError('Erro ao iniciar a reprodução. Por favor, tente novamente.');
-          } finally {
-            playPromiseRef.current = null;
-          }
-        });
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('Erro HLS:', event, data);
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.error('Erro de rede:', data);
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.error('Erro de mídia:', data);
-                hls.recoverMediaError();
-                break;
-              default:
-                console.error('Erro fatal:', data);
-                hls.destroy();
-                setError('Erro ao reproduzir o vídeo. Por favor, tente novamente.');
-                break;
-            }
-          }
         });
 
         hlsRef.current = hls;
-      } else if (!isHls && canPlayMp4Natively !== '') {
-        videoRef.current.src = streamUrl;
-        videoRef.current.addEventListener('loadedmetadata', async () => {
-          console.log('Metadados do vídeo carregados (Native Player)');
-          try {
-            if (playPromiseRef.current) {
-              try {
-                await playPromiseRef.current;
-              } catch (e) {
-                // Ignora erros de reprodução anterior
-              }
-            }
-
-            // Define o tempo salvo antes de iniciar a reprodução
-            if (savedTime > 0) {
-              videoRef.current.currentTime = savedTime;
-            }
-
-            playPromiseRef.current = videoRef.current.play();
-            await playPromiseRef.current;
-            setIsPlaying(true);
-            setIsLoading(false);
-            console.log('Reprodução nativa iniciada com sucesso');
-          } catch (err) {
-            console.error('Erro ao iniciar reprodução (Native Player):', err);
-            setError('Erro ao iniciar a reprodução nativa. Tente novamente.');
-          } finally {
-            playPromiseRef.current = null;
+        hls.loadSource(streamUrl);
+        hls.attachMedia(videoRef.current);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (savedTime > 0) {
+            videoRef.current.currentTime = savedTime;
           }
-        }, { once: true });
-      } else if (isHls && videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-        // Fallback nativo do Safari para HLS
-        console.log('Tentando reproduzir com Native HLS Fallback');
-        videoRef.current.src = streamUrl;
-        videoRef.current.addEventListener('loadedmetadata', async () => {
-          console.log('Metadados do vídeo carregados (Native HLS Fallback)');
-          try {
-            if (playPromiseRef.current) {
-              try {
-                await playPromiseRef.current;
-              } catch (e) {
-                // Ignora erros de reprodução anterior
-              }
-            }
+          videoRef.current.play().catch(err => {
+            console.error('Erro ao iniciar reprodução:', err);
+            setError('Erro ao iniciar a reprodução. Tente novamente.');
+          });
+        });
 
-            // Define o tempo salvo antes de iniciar a reprodução
-            if (savedTime > 0) {
-              videoRef.current.currentTime = savedTime;
-            }
-
-            playPromiseRef.current = videoRef.current.play();
-            await playPromiseRef.current;
-            setIsPlaying(true);
-            setIsLoading(false);
-          } catch (err) {
-            console.error('Erro ao iniciar reprodução (Native HLS Fallback):', err);
-            setError('Erro ao iniciar a reprodução. Por favor, tente novamente.');
-          } finally {
-            playPromiseRef.current = null;
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            console.error('Erro fatal no HLS:', data);
+            setError('Erro ao carregar o vídeo. Tente novamente.');
           }
         });
+      } else if (canPlayMp4Natively) {
+        videoRef.current.src = streamUrl;
+        if (savedTime > 0) {
+          videoRef.current.currentTime = savedTime;
+        }
+        videoRef.current.play().catch(err => {
+          console.error('Erro ao iniciar reprodução:', err);
+          setError('Erro ao iniciar a reprodução. Tente novamente.');
+        });
       } else {
-        setError('Seu navegador não suporta a reprodução deste tipo de vídeo.');
+        throw new Error('Formato de vídeo não suportado');
       }
-    } catch (err) {
-      console.error('Erro ao carregar stream:', err);
-      setError('Erro ao carregar o vídeo. Por favor, tente novamente.');
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Erro ao carregar vídeo:', error);
+      setError(error.message || 'Erro ao carregar o vídeo');
+      setIsLoading(false);
     }
   };
 

@@ -9,7 +9,7 @@ import { useWatch } from './context/WatchContext';
 
 const Series = () => {
   const navigate = useNavigate();
-  const { watchProgress, toggleFavorite: toggleWatchFavorite, continueWatching, updateProgress, addToContinueWatching } = useWatch();
+  const { watchProgress, toggleFavorite: toggleWatchFavorite, updateProgress } = useWatch();
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -19,8 +19,16 @@ const Series = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [episodiosDaSerie, setEpisodiosDaSerie] = useState([]);
-  const [favoriteSeries, setFavoriteSeries] = useState([]);
+  const [favoriteSeries, setFavoriteSeries] = useState(() => {
+    // Carrega os favoritos do localStorage ao iniciar
+    const savedFavorites = localStorage.getItem('seriesFavorites');
+    return savedFavorites ? JSON.parse(savedFavorites) : [];
+  });
   const [playerError, setPlayerError] = useState(null);
+  const [watchedEpisodes, setWatchedEpisodes] = useState(() => {
+    const savedWatched = localStorage.getItem('watchedEpisodes');
+    return savedWatched ? JSON.parse(savedWatched) : [];
+  });
 
   // Carregar categorias de séries da API
   useEffect(() => {
@@ -72,18 +80,15 @@ const Series = () => {
     fetchSeries();
   }, [fetchSeries]);
 
-  // Carregar favoritos do localStorage
-  useEffect(() => {
-    const savedFavorites = localStorage.getItem('seriesFavorites');
-    if (savedFavorites) {
-      setFavoriteSeries(JSON.parse(savedFavorites));
-    }
-  }, []);
-
-  // Salvar favoritos no localStorage
+  // Salva os favoritos no localStorage sempre que houver mudança
   useEffect(() => {
     localStorage.setItem('seriesFavorites', JSON.stringify(favoriteSeries));
   }, [favoriteSeries]);
+
+  // Salva os episódios assistidos no localStorage
+  useEffect(() => {
+    localStorage.setItem('watchedEpisodes', JSON.stringify(watchedEpisodes));
+  }, [watchedEpisodes]);
 
   const handleSerieClick = (serie) => {
     setModalSerie(serie);
@@ -103,30 +108,69 @@ const Series = () => {
         return;
       }
 
+      if (!episodio || !episodio.id) {
+        console.error('Episódio inválido:', episodio);
+        setPlayerError('Episódio não encontrado');
+        return;
+      }
+
       const streamUrl = `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
       console.log('URL do stream gerada:', streamUrl);
 
+      // Garante que todos os dados sejam strings ou valores primitivos
       const episodioComUrl = {
-        ...episodio,
+        id: String(episodio.id),
+        title: String(episodio.title || `Episódio ${episodio.episode_num}`),
+        name: String(episodio.title || `Episódio ${episodio.episode_num}`),
+        episode_num: String(episodio.episode_num),
+        season: String(episodio.season),
+        info: String(episodio.info || 'Sem descrição disponível'),
+        duration: String(episodio.duration || '0'),
+        duration_secs: String(episodio.duration_secs || '0'),
+        bitrate: String(episodio.bitrate || '0'),
         url: streamUrl
       };
 
-      // Adiciona à lista de "Continuar assistindo"
-      addToContinueWatching({
-        id: episodio.id,
-        serieId: serie.series_id,
-        serieName: serie.name,
-        episodioName: episodio.title || episodio.name,
-        thumbnail: serie.cover,
-        progress: watchProgress[episodio.id] || 0
+      // Marca o episódio como assistido
+      setWatchedEpisodes(prev => {
+        if (!prev.includes(episodio.id)) {
+          const newWatched = [...prev, episodio.id];
+          localStorage.setItem('watchedEpisodes', JSON.stringify(newWatched));
+          return newWatched;
+        }
+        return prev;
       });
 
-      setSelectedSerie(serie);
-      setEpisodiosDaSerie(episodiosDaSerie => [...episodiosDaSerie, episodioComUrl]);
+      // Garante que todos os dados da série sejam strings
+      const serieCompleta = {
+        series_id: String(serie.series_id || ''),
+        name: String(serie.name || 'Série sem título'),
+        cover: String(serie.cover || 'https://via.placeholder.com/200x300?text=Sem+Imagem'),
+        plot: String(serie.plot || 'Sem descrição disponível'),
+        year: String(serie.year || 'N/A'),
+        genre: String(serie.genre || 'N/A'),
+        rating: String(serie.rating || '0'),
+        release_date: String(serie.release_date || ''),
+        tmdb_id: String(serie.tmdb_id || ''),
+        duration: String(serie.duration || '0'),
+        duration_secs: String(serie.duration_secs || '0'),
+        bitrate: String(serie.bitrate || '0')
+      };
+
+      // Remove qualquer propriedade que seja um objeto ou array
+      Object.keys(serieCompleta).forEach(key => {
+        if (typeof serieCompleta[key] === 'object' || Array.isArray(serieCompleta[key])) {
+          delete serieCompleta[key];
+        }
+      });
+
+      setSelectedSerie(serieCompleta);
+      setEpisodiosDaSerie([episodioComUrl]);
       setModalSerie(null);
       
     } catch (error) {
       console.error('Erro ao buscar informações do episódio:', error);
+      setPlayerError('Erro ao carregar o episódio');
     }
   };
 
@@ -187,16 +231,23 @@ const Series = () => {
   const handleToggleFavorite = (serie) => {
     setFavoriteSeries(prev => {
       const isFavorite = prev.some(fav => fav.series_id === serie.series_id);
-      if (isFavorite) {
-        return prev.filter(fav => fav.series_id !== serie.series_id);
-      } else {
-        return [...prev, serie];
-      }
+      const newFavorites = isFavorite
+        ? prev.filter(fav => fav.series_id !== serie.series_id)
+        : [...prev, serie];
+      
+      // Salva imediatamente no localStorage
+      localStorage.setItem('seriesFavorites', JSON.stringify(newFavorites));
+      
+      return newFavorites;
     });
   };
 
   const isFavorite = (serieId) => {
     return favoriteSeries.some(fav => fav.series_id === serieId);
+  };
+
+  const isEpisodeWatched = (episodeId) => {
+    return watchedEpisodes.includes(episodeId);
   };
 
   // Filtrar séries baseado na categoria selecionada
@@ -264,8 +315,7 @@ const Series = () => {
                     className="retry-button"
                     onClick={() => {
                       setPlayerError(null);
-                      // Força o player a tentar carregar novamente
-                      setEpisodiosDaSerie([episodiosDaSerie[episodiosDaSerie.length - 1]]);
+                      setEpisodiosDaSerie([episodiosDaSerie[0]]);
                     }}
                   >
                     Tentar Novamente
@@ -275,8 +325,44 @@ const Series = () => {
             </div>
           ) : (
             <PlayerSeries
-              serie={selectedSerie}
-              episodios={episodiosDaSerie}
+              serie={{
+                series_id: String(selectedSerie.series_id || ''),
+                name: String(selectedSerie.name || 'Série sem título'),
+                cover: String(selectedSerie.cover || 'https://via.placeholder.com/200x300?text=Sem+Imagem'),
+                plot: String(selectedSerie.plot || 'Sem descrição disponível'),
+                year: String(selectedSerie.year || 'N/A'),
+                genre: String(selectedSerie.genre || 'N/A'),
+                rating: String(selectedSerie.rating || '0'),
+                release_date: String(selectedSerie.release_date || ''),
+                tmdb_id: String(selectedSerie.tmdb_id || ''),
+                duration: String(selectedSerie.duration || '0'),
+                duration_secs: String(selectedSerie.duration_secs || '0'),
+                bitrate: String(selectedSerie.bitrate || '0')
+              }}
+              episodio={{
+                id: String(episodiosDaSerie[0].id),
+                title: String(episodiosDaSerie[0].title || ''),
+                name: String(episodiosDaSerie[0].name || ''),
+                episode_num: String(episodiosDaSerie[0].episode_num || ''),
+                season: String(episodiosDaSerie[0].season || ''),
+                info: String(episodiosDaSerie[0].info || ''),
+                duration: String(episodiosDaSerie[0].duration || '0'),
+                duration_secs: String(episodiosDaSerie[0].duration_secs || '0'),
+                bitrate: String(episodiosDaSerie[0].bitrate || '0'),
+                url: String(episodiosDaSerie[0].url || '')
+              }}
+              episodios={episodiosDaSerie.map(ep => ({
+                id: String(ep.id),
+                title: String(ep.title || ''),
+                name: String(ep.name || ''),
+                episode_num: String(ep.episode_num || ''),
+                season: String(ep.season || ''),
+                info: String(ep.info || ''),
+                duration: String(ep.duration || '0'),
+                duration_secs: String(ep.duration_secs || '0'),
+                bitrate: String(ep.bitrate || '0'),
+                url: String(ep.url || '')
+              }))}
               onClose={handleClosePlayer}
               onError={handlePlayerError}
               onNextEpisode={handleNextEpisode}
@@ -367,32 +453,6 @@ const Series = () => {
         </div>
 
         <div className="series-main">
-          {continueWatching.length > 0 && (
-            <div className="continue-watching-section">
-              <h2>Continuar Assistindo</h2>
-              <div className="continue-watching-grid">
-                {continueWatching.map(item => (
-                  <div key={item.id} className="continue-watching-item" onClick={() => handleAssistir(
-                    { series_id: item.serieId, name: item.serieName },
-                    { id: item.id, name: item.episodioName }
-                  )}>
-                    <img src={item.thumbnail} alt={item.serieName} />
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: `${item.progress}%` }}
-                      />
-                    </div>
-                    <div className="continue-watching-info">
-                      <h3>{item.serieName}</h3>
-                      <p>{item.episodioName}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="series-grid">
             {filteredSeries.map((serie) => (
               <div key={serie.series_id} className="serie-card" onClick={() => handleSerieClick(serie)}>
@@ -433,11 +493,25 @@ const Series = () => {
 
       {modalSerie && (
         <ModalDetalhesSerie
-          serie={modalSerie}
+          serie={{
+            series_id: String(modalSerie.series_id || ''),
+            name: String(modalSerie.name || 'Série sem título'),
+            cover: String(modalSerie.cover || 'https://via.placeholder.com/200x300?text=Sem+Imagem'),
+            plot: String(modalSerie.plot || 'Sem descrição disponível'),
+            year: String(modalSerie.year || 'N/A'),
+            genre: String(modalSerie.genre || 'N/A'),
+            rating: String(modalSerie.rating || '0'),
+            release_date: String(modalSerie.release_date || ''),
+            tmdb_id: String(modalSerie.tmdb_id || ''),
+            duration: String(modalSerie.duration || '0'),
+            duration_secs: String(modalSerie.duration_secs || '0'),
+            bitrate: String(modalSerie.bitrate || '0')
+          }}
           onClose={handleCloseModal}
           onAssistir={handleAssistir}
           isFavorite={isFavorite(modalSerie.series_id)}
           onToggleFavorite={() => handleToggleFavorite(modalSerie)}
+          isEpisodeWatched={isEpisodeWatched}
         />
       )}
     </div>
