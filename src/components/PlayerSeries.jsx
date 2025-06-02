@@ -39,9 +39,22 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
   // Função para atualizar o tempo atual
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      const currentProgress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-      setCurrentTime(videoRef.current.currentTime);
+      const currentTime = videoRef.current.currentTime;
+      const duration = videoRef.current.duration;
+      const currentProgress = (currentTime / duration) * 100;
+      
+      setCurrentTime(currentTime);
       setProgress(currentProgress);
+      
+      // Salvar o progresso no localStorage
+      const progressData = {
+        time: currentTime,
+        progress: currentProgress,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(`progress_${episodio.id}`, JSON.stringify(progressData));
+      
+      // Notificar o componente pai sobre o progresso
       onProgressUpdate(episodio.id, currentProgress);
     }
   };
@@ -195,6 +208,14 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
         throw new Error('Usuário não autenticado');
       }
 
+      // Carregar progresso salvo
+      const savedProgress = localStorage.getItem(`progress_${episodio.id}`);
+      let savedTime = 0;
+      if (savedProgress) {
+        const progressData = JSON.parse(savedProgress);
+        savedTime = progressData.time;
+      }
+
       // Gera a URL do stream
       const streamUrl = `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
       console.log('URL do stream:', streamUrl);
@@ -206,7 +227,7 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
       // Limpa a fonte anterior antes de definir a nova
       if (videoRef.current) {
         videoRef.current.removeAttribute('src');
-        videoRef.current.load(); // Recarrega para limpar o estado anterior
+        videoRef.current.load();
       }
 
       if (isHls && Hls.isSupported()) {
@@ -239,13 +260,17 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
         hls.on(Hls.Events.MANIFEST_PARSED, async () => {
           console.log('Manifesto carregado');
           try {
-            // Cancela qualquer reprodução anterior
             if (playPromiseRef.current) {
               try {
                 await playPromiseRef.current;
               } catch (e) {
                 // Ignora erros de reprodução anterior
               }
+            }
+            
+            // Define o tempo salvo antes de iniciar a reprodução
+            if (savedTime > 0) {
+              videoRef.current.currentTime = savedTime;
             }
             
             playPromiseRef.current = videoRef.current.play();
@@ -290,13 +315,17 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
         videoRef.current.addEventListener('loadedmetadata', async () => {
            console.log('Metadados do vídeo carregados (Native Player)');
            try {
-             // Cancela qualquer reprodução anterior
              if (playPromiseRef.current) {
                try {
                  await playPromiseRef.current;
                } catch (e) {
                  // Ignora erros de reprodução anterior
                }
+             }
+
+             // Define o tempo salvo antes de iniciar a reprodução
+             if (savedTime > 0) {
+               videoRef.current.currentTime = savedTime;
              }
 
              playPromiseRef.current = videoRef.current.play();
@@ -319,13 +348,17 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
         videoRef.current.addEventListener('loadedmetadata', async () => {
           console.log('Metadados do vídeo carregados (Native HLS Fallback)');
           try {
-            // Cancela qualquer reprodução anterior
             if (playPromiseRef.current) {
               try {
                 await playPromiseRef.current;
               } catch (e) {
                 // Ignora erros de reprodução anterior
               }
+            }
+
+            // Define o tempo salvo antes de iniciar a reprodução
+            if (savedTime > 0) {
+              videoRef.current.currentTime = savedTime;
             }
 
             playPromiseRef.current = videoRef.current.play();
@@ -419,6 +452,24 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
+
+  // Efeito para limpar o progresso quando o componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (videoRef.current) {
+        const currentTime = videoRef.current.currentTime;
+        const duration = videoRef.current.duration;
+        const currentProgress = (currentTime / duration) * 100;
+        
+        const progressData = {
+          time: currentTime,
+          progress: currentProgress,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(`progress_${episodio.id}`, JSON.stringify(progressData));
+      }
+    };
+  }, [episodio.id]);
 
   if (error) {
     return (
