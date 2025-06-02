@@ -1,26 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Series.css';
 import PlayerSeries from './components/PlayerSeries';
 import ModalDetalhesSerie from './components/ModalDetalhesSerie';
 import Navigation from './components/Navigation';
-import { FaSearch, FaPlay, FaFilm, FaVideo, FaCog, FaHeart, FaRegHeart } from 'react-icons/fa';
+import { FaSearch, FaPlay, FaFilm, FaVideo, FaCog, FaHeart, FaRegHeart, FaStar, FaRegStar } from 'react-icons/fa';
 import { useWatch } from './context/WatchContext';
 
 const Series = () => {
   const navigate = useNavigate();
-  const { watchProgress, favorites, continueWatching, updateProgress, toggleFavorite, addToContinueWatching } = useWatch();
+  const { watchProgress, toggleFavorite: toggleWatchFavorite, continueWatching, updateProgress, addToContinueWatching } = useWatch();
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedSerie, setSelectedSerie] = useState(null);
-  const [selectedEpisodio, setSelectedEpisodio] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [modalSerie, setModalSerie] = useState(null);
+  const [selectedSerie, setSelectedSerie] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [playerError, setPlayerError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [episodiosDaSerie, setEpisodiosDaSerie] = useState([]);
+  const [favoriteSeries, setFavoriteSeries] = useState([]);
+  const [playerError, setPlayerError] = useState(null);
 
   // Carregar categorias de séries da API
   useEffect(() => {
@@ -72,6 +72,19 @@ const Series = () => {
     fetchSeries();
   }, [fetchSeries]);
 
+  // Carregar favoritos do localStorage
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('seriesFavorites');
+    if (savedFavorites) {
+      setFavoriteSeries(JSON.parse(savedFavorites));
+    }
+  }, []);
+
+  // Salvar favoritos no localStorage
+  useEffect(() => {
+    localStorage.setItem('seriesFavorites', JSON.stringify(favoriteSeries));
+  }, [favoriteSeries]);
+
   const handleSerieClick = (serie) => {
     setModalSerie(serie);
   };
@@ -89,8 +102,6 @@ const Series = () => {
         navigate('/login');
         return;
       }
-
-      setPlayerError(null);
 
       const streamUrl = `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
       console.log('URL do stream gerada:', streamUrl);
@@ -111,19 +122,17 @@ const Series = () => {
       });
 
       setSelectedSerie(serie);
-      setSelectedEpisodio(episodioComUrl);
+      setEpisodiosDaSerie(episodiosDaSerie => [...episodiosDaSerie, episodioComUrl]);
       setModalSerie(null);
       
     } catch (error) {
       console.error('Erro ao buscar informações do episódio:', error);
-      setPlayerError('Erro ao carregar o vídeo. Por favor, tente novamente.');
     }
   };
 
   const handleClosePlayer = () => {
     setSelectedSerie(null);
-    setSelectedEpisodio(null);
-    setPlayerError(null);
+    setEpisodiosDaSerie([]);
   };
 
   const validateStreamUrl = (url) => {
@@ -162,50 +171,59 @@ const Series = () => {
       errorMessage = 'O link do vídeo está inválido ou expirado. Por favor, tente novamente.';
     }
     
-    setPlayerError(errorMessage);
   };
 
   // Função para avançar para o próximo episódio
   const handleNextEpisode = (proximoEpisodio) => {
     console.log('Mudando para próximo episódio:', proximoEpisodio);
-    setSelectedEpisodio(proximoEpisodio);
+    setEpisodiosDaSerie(prevEpisodios => [proximoEpisodio, ...prevEpisodios.slice(0, -1)]);
   };
 
   const handleProgressUpdate = (episodioId, progress) => {
     updateProgress(episodioId, progress);
   };
 
+  // Função para alternar favorito
   const handleToggleFavorite = (serie) => {
-    toggleFavorite({
-      id: serie.series_id,
-      name: serie.name,
-      thumbnail: serie.cover,
-      type: 'series'
+    setFavoriteSeries(prev => {
+      const isFavorite = prev.some(fav => fav.series_id === serie.series_id);
+      if (isFavorite) {
+        return prev.filter(fav => fav.series_id !== serie.series_id);
+      } else {
+        return [...prev, serie];
+      }
     });
   };
 
   const isFavorite = (serieId) => {
-    return favorites.some(fav => fav.id === serieId);
+    return favoriteSeries.some(fav => fav.series_id === serieId);
   };
 
-  const filteredSeries = selectedCategory === 'all'
-    ? series
-    : series.filter(serie => serie.category_id === selectedCategory);
-
-  // Adiciona filtro de busca
-  const searchedSeries = searchTerm
-    ? filteredSeries.filter(serie => 
-        serie.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (serie.category_name && serie.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
-    : filteredSeries;
+  // Filtrar séries baseado na categoria selecionada
+  const filteredSeries = useMemo(() => {
+    let result = series;
+    
+    if (selectedCategory === 'favorites') {
+      result = favoriteSeries;
+    } else if (selectedCategory !== 'all') {
+      result = series.filter(serie => serie.category_id === selectedCategory);
+    }
+    
+    if (searchTerm) {
+      result = result.filter(serie => 
+        serie.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return result;
+  }, [series, selectedCategory, favoriteSeries, searchTerm]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
-  if (selectedSerie && selectedEpisodio) {
-    console.log('Renderizando player com:', { selectedSerie, selectedEpisodio });
+  if (selectedSerie && episodiosDaSerie.length > 0) {
+    console.log('Renderizando player com:', { selectedSerie, episodiosDaSerie });
     return (
       <div className="series-container">
         {/* Barra fixa topo */}
@@ -247,7 +265,7 @@ const Series = () => {
                     onClick={() => {
                       setPlayerError(null);
                       // Força o player a tentar carregar novamente
-                      setSelectedEpisodio({...selectedEpisodio});
+                      setEpisodiosDaSerie([episodiosDaSerie[episodiosDaSerie.length - 1]]);
                     }}
                   >
                     Tentar Novamente
@@ -258,13 +276,12 @@ const Series = () => {
           ) : (
             <PlayerSeries
               serie={selectedSerie}
-              episodio={selectedEpisodio}
+              episodios={episodiosDaSerie}
               onClose={handleClosePlayer}
               onError={handlePlayerError}
-              episodios={episodiosDaSerie}
               onNextEpisode={handleNextEpisode}
               onProgressUpdate={handleProgressUpdate}
-              initialProgress={watchProgress[selectedEpisodio.id] || 0}
+              initialProgress={watchProgress[episodiosDaSerie[0].id] || 0}
             />
           )}
         </div>
@@ -329,6 +346,14 @@ const Series = () => {
             >
               Todas
             </button>
+            <button
+              key="favorites"
+              className={`category-btn ${selectedCategory === 'favorites' ? 'active' : ''}`}
+              onClick={() => setSelectedCategory('favorites')}
+            >
+              <FaStar style={{ marginRight: '8px', color: '#ffea70' }} />
+              Favoritos
+            </button>
             {categories.map((category) => (
               <button
                 key={category.category_id}
@@ -369,30 +394,36 @@ const Series = () => {
           )}
 
           <div className="series-grid">
-            {searchedSeries.map(serie => (
-              <div key={serie.series_id} className="serie-card">
-                <div className="serie-thumbnail" onClick={() => handleSerieClick(serie)}>
-                  <img src={serie.cover} alt={serie.name} />
-                  <button 
+            {filteredSeries.map((serie) => (
+              <div key={serie.series_id} className="serie-card" onClick={() => handleSerieClick(serie)}>
+                <div className="serie-thumbnail-container">
+                  <img
+                    src={serie.cover || 'https://via.placeholder.com/200x300?text=Sem+Imagem'}
+                    alt={serie.name}
+                    className="serie-thumbnail"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/200x300?text=Sem+Imagem';
+                      e.target.classList.add('error');
+                    }}
+                  />
+                  <button
                     className="favorite-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleToggleFavorite(serie);
                     }}
                   >
-                    {isFavorite(serie.series_id) ? <FaHeart /> : <FaRegHeart />}
+                    {favoriteSeries.some(fav => fav.series_id === serie.series_id) ? (
+                      <FaStar style={{ color: '#ffea70' }} />
+                    ) : (
+                      <FaRegStar style={{ color: '#ffea70' }} />
+                    )}
                   </button>
                 </div>
                 <div className="serie-info">
                   <h3>{serie.name}</h3>
-                  {watchProgress[serie.series_id] && (
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: `${watchProgress[serie.series_id]}%` }}
-                      />
-                    </div>
-                  )}
+                  <p>{serie.year || 'N/A'}</p>
                 </div>
               </div>
             ))}

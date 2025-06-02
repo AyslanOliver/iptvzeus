@@ -41,21 +41,37 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
     if (videoRef.current) {
       const currentTime = videoRef.current.currentTime;
       const duration = videoRef.current.duration;
-      const currentProgress = (currentTime / duration) * 100;
       
-      setCurrentTime(currentTime);
-      setProgress(currentProgress);
+      if (duration > 0) {
+        const currentProgress = (currentTime / duration) * 100;
+        setCurrentTime(currentTime);
+        setProgress(currentProgress);
+        
+        // Salvar o progresso no localStorage
+        const progressData = {
+          time: currentTime,
+          progress: currentProgress,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(`progress_${episodio.id}`, JSON.stringify(progressData));
+        
+        // Notificar o componente pai sobre o progresso
+        onProgressUpdate(episodio.id, currentProgress);
+      }
+    }
+  };
+
+  // Função para lidar com o clique na barra de progresso
+  const handleProgressBarClick = (e) => {
+    if (videoRef.current) {
+      const progressBar = e.currentTarget;
+      const rect = progressBar.getBoundingClientRect();
+      const clickPosition = (e.clientX - rect.left) / rect.width;
+      const newTime = clickPosition * videoRef.current.duration;
       
-      // Salvar o progresso no localStorage
-      const progressData = {
-        time: currentTime,
-        progress: currentProgress,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(`progress_${episodio.id}`, JSON.stringify(progressData));
-      
-      // Notificar o componente pai sobre o progresso
-      onProgressUpdate(episodio.id, currentProgress);
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      setProgress(clickPosition * 100);
     }
   };
 
@@ -162,13 +178,6 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
     }
   };
 
-  // Função para pular abertura
-  const handleSkipIntro = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 90; // Pula para 1:30
-    }
-  };
-
   // Função para controlar o volume
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
@@ -214,6 +223,8 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
       if (savedProgress) {
         const progressData = JSON.parse(savedProgress);
         savedTime = progressData.time;
+        setProgress(progressData.progress);
+        setCurrentTime(progressData.time);
       }
 
       // Gera a URL do stream
@@ -231,8 +242,6 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
       }
 
       if (isHls && Hls.isSupported()) {
-        // Usar HLS.js para streams HLS
-        console.log('Tentando reproduzir com HLS.js');
         const hls = new Hls({
           xhrSetup: (xhr) => {
             xhr.withCredentials = false;
@@ -267,12 +276,12 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
                 // Ignora erros de reprodução anterior
               }
             }
-            
+
             // Define o tempo salvo antes de iniciar a reprodução
             if (savedTime > 0) {
               videoRef.current.currentTime = savedTime;
             }
-            
+
             playPromiseRef.current = videoRef.current.play();
             await playPromiseRef.current;
             setIsPlaying(true);
@@ -308,39 +317,35 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
 
         hlsRef.current = hls;
       } else if (!isHls && canPlayMp4Natively !== '') {
-        // Usar player nativo para outros formatos (como MP4) se o navegador indicar suporte
-        console.log('Tentando reproduzir com player nativo (MP4)');
         videoRef.current.src = streamUrl;
-        // Espera pelo evento loadedmetadata antes de tentar dar play
         videoRef.current.addEventListener('loadedmetadata', async () => {
-           console.log('Metadados do vídeo carregados (Native Player)');
-           try {
-             if (playPromiseRef.current) {
-               try {
-                 await playPromiseRef.current;
-               } catch (e) {
-                 // Ignora erros de reprodução anterior
-               }
-             }
+          console.log('Metadados do vídeo carregados (Native Player)');
+          try {
+            if (playPromiseRef.current) {
+              try {
+                await playPromiseRef.current;
+              } catch (e) {
+                // Ignora erros de reprodução anterior
+              }
+            }
 
-             // Define o tempo salvo antes de iniciar a reprodução
-             if (savedTime > 0) {
-               videoRef.current.currentTime = savedTime;
-             }
+            // Define o tempo salvo antes de iniciar a reprodução
+            if (savedTime > 0) {
+              videoRef.current.currentTime = savedTime;
+            }
 
-             playPromiseRef.current = videoRef.current.play();
-             await playPromiseRef.current;
-             setIsPlaying(true);
-             setIsLoading(false);
-             console.log('Reprodução nativa iniciada com sucesso');
-           } catch (err) {
-             console.error('Erro ao iniciar reprodução (Native Player):', err);
-             setError('Erro ao iniciar a reprodução nativa. Tente novamente.');
-           } finally {
-             playPromiseRef.current = null;
-           }
-        }, { once: true }); // Usar once: true para remover o listener após o disparo
-
+            playPromiseRef.current = videoRef.current.play();
+            await playPromiseRef.current;
+            setIsPlaying(true);
+            setIsLoading(false);
+            console.log('Reprodução nativa iniciada com sucesso');
+          } catch (err) {
+            console.error('Erro ao iniciar reprodução (Native Player):', err);
+            setError('Erro ao iniciar a reprodução nativa. Tente novamente.');
+          } finally {
+            playPromiseRef.current = null;
+          }
+        }, { once: true });
       } else if (isHls && videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
         // Fallback nativo do Safari para HLS
         console.log('Tentando reproduzir com Native HLS Fallback');
@@ -394,6 +399,8 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
 
   // Efeito para carregar o vídeo quando o componente montar
   useEffect(() => {
+    const abortController = abortControllerRef.current;
+    
     if (serie && episodio) {
       loadVideo();
     }
@@ -405,11 +412,11 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
       if (playPromiseRef.current) {
         playPromiseRef.current.catch(() => {}); // Ignora erros de reprodução ao desmontar
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (abortController) {
+        abortController.abort();
       }
     };
-  }, [serie, episodio]);
+  }, [serie, episodio, loadVideo]);
 
   // Efeito para lidar com a tecla ESC
   useEffect(() => {
@@ -453,10 +460,10 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
     };
   }, []);
 
-  // Efeito para limpar o progresso quando o componente for desmontado
+  // Efeito para salvar o progresso periodicamente
   useEffect(() => {
-    return () => {
-      if (videoRef.current) {
+    const saveProgressInterval = setInterval(() => {
+      if (videoRef.current && videoRef.current.duration > 0) {
         const currentTime = videoRef.current.currentTime;
         const duration = videoRef.current.duration;
         const currentProgress = (currentTime / duration) * 100;
@@ -468,6 +475,10 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
         };
         localStorage.setItem(`progress_${episodio.id}`, JSON.stringify(progressData));
       }
+    }, 1000); // Salva a cada segundo
+
+    return () => {
+      clearInterval(saveProgressInterval);
     };
   }, [episodio.id]);
 
@@ -514,7 +525,10 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
 
       <div className={`player-controls ${showControls ? 'visible' : 'hidden'}`}>
         <div className="progress-container">
-          <div className="progress-bar">
+          <div 
+            className="progress-bar"
+            onClick={handleProgressBarClick}
+          >
             <div 
               className="progress-fill"
               style={{ width: `${progress}%` }}
