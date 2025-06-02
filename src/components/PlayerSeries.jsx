@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { FaPlay, FaPause, FaForward, FaBackward, FaStepForward, FaTimes } from 'react-icons/fa';
+import { FaPlay, FaPause, FaForward, FaBackward, FaStepForward, FaTimes, FaVolumeUp, FaVolumeMute, FaExpand, FaCompress, FaClosedCaptioning, FaLanguage } from 'react-icons/fa';
 import './PlayerSeries.css';
 
-const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode }) => {
+const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode, onProgressUpdate, initialProgress = 0 }) => {
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
   const hlsRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -14,21 +15,34 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [availableTracks, setAvailableTracks] = useState({ audio: [], subtitles: [] });
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(null);
+  const [showTrackMenu, setShowTrackMenu] = useState(false);
+  const [trackMenuType, setTrackMenuType] = useState(null); // 'audio' ou 'subtitles'
   const controlsTimeoutRef = useRef(null);
   const playPromiseRef = useRef(null);
   const abortControllerRef = useRef(new AbortController());
+  const [progress, setProgress] = useState(initialProgress);
 
   // Função para formatar o tempo
   const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return hours > 0 
+      ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      : `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // Função para atualizar o tempo atual
   const handleTimeUpdate = () => {
     if (videoRef.current) {
+      const currentProgress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
       setCurrentTime(videoRef.current.currentTime);
+      setProgress(currentProgress);
+      onProgressUpdate(episodio.id, currentProgress);
     }
   };
 
@@ -36,6 +50,59 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
   const handleDurationChange = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+    }
+  };
+
+  // Função para carregar faixas de áudio e legendas
+  const loadTracks = () => {
+    if (videoRef.current) {
+      const audioTracks = Array.from(videoRef.current.audioTracks || []);
+      const textTracks = Array.from(videoRef.current.textTracks || []);
+
+      setAvailableTracks({
+        audio: audioTracks.map(track => ({
+          id: track.id,
+          label: track.label || `Áudio ${track.language || 'Desconhecido'}`,
+          language: track.language,
+          kind: track.kind
+        })),
+        subtitles: textTracks.map(track => ({
+          id: track.id,
+          label: track.label || `Legenda ${track.language || 'Desconhecido'}`,
+          language: track.language,
+          kind: track.kind
+        }))
+      });
+
+      // Selecionar primeira faixa de áudio por padrão
+      if (audioTracks.length > 0) {
+        setSelectedAudioTrack(audioTracks[0].id);
+      }
+
+      // Desativar legendas por padrão
+      setSelectedSubtitleTrack('off');
+    }
+  };
+
+  // Função para mudar faixa de áudio
+  const changeAudioTrack = (trackId) => {
+    if (videoRef.current) {
+      const audioTracks = videoRef.current.audioTracks;
+      for (let i = 0; i < audioTracks.length; i++) {
+        audioTracks[i].enabled = audioTracks[i].id === trackId;
+      }
+      setSelectedAudioTrack(trackId);
+    }
+  };
+
+  // Função para mudar legenda
+  const changeSubtitleTrack = (trackId) => {
+    if (videoRef.current) {
+      const textTracks = videoRef.current.textTracks;
+      for (let i = 0; i < textTracks.length; i++) {
+        textTracks[i].mode = textTracks[i].id === trackId ? 'showing' : 'hidden';
+      }
+      setSelectedSubtitleTrack(trackId);
     }
   };
 
@@ -281,6 +348,17 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
     }
   };
 
+  // Função para alternar tela inteira
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(err => {
+        console.error(`Erro ao entrar em tela inteira: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
   // Efeito para carregar o vídeo quando o componente montar
   useEffect(() => {
     if (serie && episodio) {
@@ -312,6 +390,36 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
     return () => document.removeEventListener('keydown', handleEscKey);
   }, [onClose]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+      if (initialProgress > 0) {
+        video.currentTime = (initialProgress / 100) * video.duration;
+      }
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [episodio.id, initialProgress]);
+
+  // Efeito para monitorar mudanças no estado de tela inteira
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   if (error) {
     return (
       <div className="player-container">
@@ -324,7 +432,7 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
   }
 
   return (
-    <div className="player-container" onMouseMove={handleMouseMove}>
+    <div className="player-container" onMouseMove={handleMouseMove} ref={containerRef}>
       {isLoading && (
         <div className="player-loading">
           <div className="spinner"></div>
@@ -332,23 +440,38 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
         </div>
       )}
 
-      <video
-        ref={videoRef}
-        className="player-video"
-        playsInline
-        onTimeUpdate={handleTimeUpdate}
-        onDurationChange={handleDurationChange}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)}
-      />
+      <div className="player-header">
+        <h2>{serie.name} - {episodio.title || `Episódio ${episodio.episode_num}`}</h2>
+        <button className="close-button" onClick={onClose}>
+          <FaTimes />
+        </button>
+      </div>
+
+      <div className="video-container">
+        <video
+          ref={videoRef}
+          className="video-player"
+          playsInline
+          onTimeUpdate={handleTimeUpdate}
+          onDurationChange={handleDurationChange}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+          onLoadedMetadata={loadTracks}
+        />
+      </div>
 
       <div className={`player-controls ${showControls ? 'visible' : 'hidden'}`}>
-        <div className="progress-bar">
-          <div 
-            className="progress-filled"
-            style={{ width: `${(currentTime / duration) * 100}%` }}
-          />
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div 
+              className="progress-fill"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="time-display">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
         </div>
 
         <div className="control-buttons">
@@ -361,10 +484,10 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
           <button onClick={handleForward} className="control-button">
             <FaForward />
           </button>
-          <button onClick={handleSkipIntro} className="control-button skip-intro">
-            Pular Abertura
-          </button>
           <div className="volume-control">
+            <button onClick={toggleMute} className="control-button">
+              {isMuted ? <FaVolumeMute /> : <FaVolumeUp />}
+            </button>
             <input
               type="range"
               min="0"
@@ -375,38 +498,92 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
               className="volume-slider"
             />
           </div>
-          <div className="time-display">
-            {formatTime(currentTime)} / {formatTime(duration)}
+          <div className="track-controls">
+            <button 
+              className="control-button"
+              onClick={() => {
+                setTrackMenuType('audio');
+                setShowTrackMenu(!showTrackMenu);
+              }}
+            >
+              <FaLanguage />
+            </button>
+            <button 
+              className="control-button"
+              onClick={() => {
+                setTrackMenuType('subtitles');
+                setShowTrackMenu(!showTrackMenu);
+              }}
+            >
+              <FaClosedCaptioning />
+            </button>
           </div>
-        </div>
-      </div>
-
-      <div className="player-info">
-        <div className="player-title">
-          <h2>{serie.name}</h2>
-          <h3>{episodio.title || `Episódio ${episodio.episode_num}`}</h3>
-        </div>
-        <div className="player-actions">
           {episodios && episodios.length > 0 && (
             <button
-              className="player-next"
+              className="control-button"
               onClick={() => {
                 const idx = episodios.findIndex(ep => ep.id === episodio.id);
                 if (idx !== -1 && idx < episodios.length - 1) {
-                  const proximoEpisodio = episodios[idx + 1];
-                  console.log('Próximo episódio:', proximoEpisodio);
-                  onNextEpisode(proximoEpisodio);
+                  onNextEpisode(episodios[idx + 1]);
                 }
               }}
               disabled={episodios.findIndex(ep => ep.id === episodio.id) === episodios.length - 1}
             >
-              <FaStepForward /> Próximo
+              <FaStepForward />
             </button>
           )}
-          <button className="player-close" onClick={onClose}>
-            <FaTimes /> Fechar
+          <button onClick={toggleFullscreen} className="control-button fullscreen-button">
+            {isFullscreen ? <FaCompress /> : <FaExpand />}
           </button>
         </div>
+
+        {showTrackMenu && (
+          <div className="track-menu">
+            <h3>{trackMenuType === 'audio' ? 'Áudio' : 'Legendas'}</h3>
+            <div className="track-options">
+              {trackMenuType === 'audio' ? (
+                <>
+                  {availableTracks.audio.map(track => (
+                    <button
+                      key={track.id}
+                      className={`track-option ${selectedAudioTrack === track.id ? 'selected' : ''}`}
+                      onClick={() => {
+                        changeAudioTrack(track.id);
+                        setShowTrackMenu(false);
+                      }}
+                    >
+                      {track.label}
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <button
+                    className={`track-option ${selectedSubtitleTrack === 'off' ? 'selected' : ''}`}
+                    onClick={() => {
+                      changeSubtitleTrack('off');
+                      setShowTrackMenu(false);
+                    }}
+                  >
+                    Desativado
+                  </button>
+                  {availableTracks.subtitles.map(track => (
+                    <button
+                      key={track.id}
+                      className={`track-option ${selectedSubtitleTrack === track.id ? 'selected' : ''}`}
+                      onClick={() => {
+                        changeSubtitleTrack(track.id);
+                        setShowTrackMenu(false);
+                      }}
+                    >
+                      {track.label}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,10 +4,12 @@ import './Series.css';
 import PlayerSeries from './components/PlayerSeries';
 import ModalDetalhesSerie from './components/ModalDetalhesSerie';
 import Navigation from './components/Navigation';
-import { FaSearch, FaPlay, FaFilm, FaVideo, FaCog } from 'react-icons/fa';
+import { FaSearch, FaPlay, FaFilm, FaVideo, FaCog, FaHeart, FaRegHeart } from 'react-icons/fa';
+import { useWatch } from './context/WatchContext';
 
 const Series = () => {
   const navigate = useNavigate();
+  const { watchProgress, favorites, continueWatching, updateProgress, toggleFavorite, addToContinueWatching } = useWatch();
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedSerie, setSelectedSerie] = useState(null);
@@ -88,23 +90,28 @@ const Series = () => {
         return;
       }
 
-      // Limpa qualquer erro anterior
       setPlayerError(null);
 
-      // Busca a URL do stream diretamente
       const streamUrl = `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
       console.log('URL do stream gerada:', streamUrl);
 
-      // Atualiza o estado com a série e o episódio
       const episodioComUrl = {
         ...episodio,
         url: streamUrl
       };
 
+      // Adiciona à lista de "Continuar assistindo"
+      addToContinueWatching({
+        id: episodio.id,
+        serieId: serie.series_id,
+        serieName: serie.name,
+        episodioName: episodio.title || episodio.name,
+        thumbnail: serie.cover,
+        progress: watchProgress[episodio.id] || 0
+      });
+
       setSelectedSerie(serie);
       setSelectedEpisodio(episodioComUrl);
-      
-      // Fecha o modal
       setModalSerie(null);
       
     } catch (error) {
@@ -162,6 +169,23 @@ const Series = () => {
   const handleNextEpisode = (proximoEpisodio) => {
     console.log('Mudando para próximo episódio:', proximoEpisodio);
     setSelectedEpisodio(proximoEpisodio);
+  };
+
+  const handleProgressUpdate = (episodioId, progress) => {
+    updateProgress(episodioId, progress);
+  };
+
+  const handleToggleFavorite = (serie) => {
+    toggleFavorite({
+      id: serie.series_id,
+      name: serie.name,
+      thumbnail: serie.cover,
+      type: 'series'
+    });
+  };
+
+  const isFavorite = (serieId) => {
+    return favorites.some(fav => fav.id === serieId);
   };
 
   const filteredSeries = selectedCategory === 'all'
@@ -239,6 +263,8 @@ const Series = () => {
               onError={handlePlayerError}
               episodios={episodiosDaSerie}
               onNextEpisode={handleNextEpisode}
+              onProgressUpdate={handleProgressUpdate}
+              initialProgress={watchProgress[selectedEpisodio.id] || 0}
             />
           )}
         </div>
@@ -316,42 +342,61 @@ const Series = () => {
         </div>
 
         <div className="series-main">
-          {searchedSeries.length === 0 ? (
-            <div className="no-results">
-              <p>{searchTerm ? 'Nenhuma série encontrada para sua busca.' : 'Nenhuma série encontrada nesta categoria.'}</p>
-            </div>
-          ) : (
-            <div className="series-grid">
-              {searchedSeries.map((serie) => (
-                <div
-                  key={serie.series_id}
-                  className="serie-card"
-                  onClick={() => handleSerieClick(serie)}
-                >
-                  <div className="serie-poster">
-                    <img
-                      src={serie.cover || '/placeholder.jpg'}
-                      alt={serie.name}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/noimg.png';
-                      }}
-                    />
+          {continueWatching.length > 0 && (
+            <div className="continue-watching-section">
+              <h2>Continuar Assistindo</h2>
+              <div className="continue-watching-grid">
+                {continueWatching.map(item => (
+                  <div key={item.id} className="continue-watching-item" onClick={() => handleAssistir(
+                    { series_id: item.serieId, name: item.serieName },
+                    { id: item.id, name: item.episodioName }
+                  )}>
+                    <img src={item.thumbnail} alt={item.serieName} />
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
+                    <div className="continue-watching-info">
+                      <h3>{item.serieName}</h3>
+                      <p>{item.episodioName}</p>
+                    </div>
                   </div>
-                  <div className="serie-info">
-                    <h3>{serie.name}</h3>
-                    {serie.category_name && (
-                      <div className="serie-categories">
-                        <span className="category-tag">
-                          {serie.category_name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
+
+          <div className="series-grid">
+            {searchedSeries.map(serie => (
+              <div key={serie.series_id} className="serie-card">
+                <div className="serie-thumbnail" onClick={() => handleSerieClick(serie)}>
+                  <img src={serie.cover} alt={serie.name} />
+                  <button 
+                    className="favorite-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFavorite(serie);
+                    }}
+                  >
+                    {isFavorite(serie.series_id) ? <FaHeart /> : <FaRegHeart />}
+                  </button>
+                </div>
+                <div className="serie-info">
+                  <h3>{serie.name}</h3>
+                  {watchProgress[serie.series_id] && (
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{ width: `${watchProgress[serie.series_id]}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -360,6 +405,8 @@ const Series = () => {
           serie={modalSerie}
           onClose={handleCloseModal}
           onAssistir={handleAssistir}
+          isFavorite={isFavorite(modalSerie.series_id)}
+          onToggleFavorite={() => handleToggleFavorite(modalSerie)}
         />
       )}
     </div>
