@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import './PlayerFilmes.css';
-import Hls from 'hls.js';
+import Hls from 'hls.js/dist/hls.min.js';
 
 const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
   const videoRef = useRef(null);

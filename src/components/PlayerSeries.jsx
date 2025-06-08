@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js';
+import Hls from 'hls.js/dist/hls.min.js';
 import { FaPlay, FaPause, FaForward, FaBackward, FaStepForward, FaTimes } from 'react-icons/fa';
 import './PlayerSeries.css';
 

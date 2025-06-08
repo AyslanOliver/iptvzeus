@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaHeart, FaRegHeart, FaSearch, FaPlay, FaFilm, FaCog, FaVideo } from 'react-icons/fa';
-import Hls from 'hls.js';
+import Hls from 'hls.js/dist/hls.min.js';
 import Navigation from './components/Navigation';
 import { useNavigate } from 'react-router-dom';
 import './Canais.css';

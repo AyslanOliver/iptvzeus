@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Filmes.css';
 import PlayerFilmes from './components/PlayerFilmes';
-import Hls from 'hls.js';
+import Hls from 'hls.js/dist/hls.min.js';
 import ModalDetalhesFilme from './components/ModalDetalhesFilme';
 import Navigation from './components/Navigation';
 import { FaSearch, FaPlay, FaFilm, FaCog, FaVideo } from 'react-icons/fa';
