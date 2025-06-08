@@ -1,65 +1,61 @@
-.player-container {
-  position: relative;
+.player-series-container {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   background-color: #000;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  z-index: 1000;
 }
 
 .player-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: linear-gradient(rgba(0, 0, 0, 0.8), transparent);
-  color: white;
-  z-index: 10;
+  background: rgba(0,0,0,0.8);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
 }
 
 .player-header h2 {
   margin: 0;
   font-size: 1.2rem;
-  color: #ffea70;
+  color: #fff;
 }
 
 .close-button {
   background: none;
   border: none;
-  color: white;
-  cursor: pointer;
+  color: #fff;
   font-size: 1.5rem;
+  cursor: pointer;
   padding: 0.5rem;
-  transition: color 0.2s;
+  transition: opacity 0.2s;
 }
 
 .close-button:hover {
-  color: #ffea70;
+  opacity: 0.7;
 }
 
-.video-container {
+.player-wrapper {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #000;
   position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  background: #000;
 }
 
 .video-player {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  max-width: 100%;
-  max-height: 100%;
 }
 
 .player-controls {
@@ -67,109 +63,78 @@
   bottom: 0;
   left: 0;
   right: 0;
+  background: rgba(0,0,0,0.8);
   padding: 1rem;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 10;
+  transition: opacity 0.2s;
+  z-index: 2;
 }
 
-.player-controls.visible {
-  opacity: 1;
+.player-controls.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.progress-container {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #e50914;
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+.time-display {
+  color: #fff;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  text-align: right;
 }
 
 .control-buttons {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-top: 0.5rem;
 }
 
 .control-button {
   background: none;
   border: none;
-  color: white;
-  cursor: pointer;
+  color: #fff;
   font-size: 1.2rem;
+  cursor: pointer;
   padding: 0.5rem;
-  transition: all 0.2s;
+  transition: opacity 0.2s;
 }
 
 .control-button:hover {
-  color: #ffea70;
-  transform: scale(1.1);
-}
-
-.control-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.progress-container {
-  width: 100%;
-  padding: 0 10px;
-  position: relative;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2.5px;
-  cursor: pointer;
-  position: relative;
-  transition: height 0.2s ease;
-}
-
-.progress-bar:hover {
-  height: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #e50914;
-  border-radius: 2.5px;
-  position: relative;
-  transition: width 0.1s linear;
-}
-
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  background: #e50914;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.progress-bar:hover .progress-fill::after {
-  opacity: 1;
-}
-
-.time-display {
-  color: white;
-  font-size: 0.9rem;
-  text-align: center;
+  opacity: 0.7;
 }
 
 .volume-control {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-left: 0.5rem;
 }
 
 .volume-slider {
   width: 80px;
   height: 4px;
   -webkit-appearance: none;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255,255,255,0.2);
   border-radius: 2px;
   outline: none;
 }
@@ -178,18 +143,41 @@
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
-  background: #ffea70;
+  background: #fff;
   border-radius: 50%;
   cursor: pointer;
 }
 
-.volume-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  background: #ffea70;
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
+.series-info {
+  padding: 1rem;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: translateY(100%);
+  transition: transform 0.2s;
+}
+
+.series-info.visible {
+  transform: translateY(0);
+}
+
+.series-description {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.9);
+}
+
+.series-year,
+.series-genre {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.7);
+  margin: 0.25rem 0;
+  display: inline-block;
+  margin-right: 1rem;
 }
 
 .player-loading {
@@ -201,16 +189,16 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  color: white;
-  z-index: 20;
+  color: #fff;
+  z-index: 1001;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
+  border: 3px solid rgba(255,255,255,0.1);
   border-radius: 50%;
-  border-top-color: #ffea70;
+  border-top-color: #e50914;
   animation: spin 1s linear infinite;
 }
 
@@ -225,151 +213,96 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
-  padding: 2rem;
+  background: rgba(0,0,0,0.9);
+  padding: 1.5rem;
   border-radius: 8px;
   text-align: center;
-  color: white;
-  z-index: 20;
+  color: #fff;
+  z-index: 1001;
+  max-width: 90%;
+  width: 300px;
 }
 
 .player-error p {
-  margin-bottom: 1rem;
-}
-
-.player-error button {
-  background: #ffea70;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.player-error button:hover {
-  background: #ffe04d;
-}
-
-.fullscreen-button {
-  margin-left: auto;
-}
-
-.fullscreen-button:hover {
-  transform: scale(1.1);
-}
-
-.track-controls {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: 0.5rem;
-}
-
-.track-menu {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  background: rgba(0, 0, 0, 0.9);
-  border-radius: 4px;
-  padding: 1rem;
-  margin-bottom: 0.5rem;
-  min-width: 200px;
-  z-index: 1000;
-}
-
-.track-menu h3 {
-  color: #ffea70;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 1rem 0;
   font-size: 1rem;
-  text-align: center;
+  line-height: 1.4;
 }
 
-.track-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.track-option {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 0.5rem;
+.retry-button {
+  background: #e50914;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
+  font-size: 0.9rem;
+  transition: opacity 0.2s;
 }
 
-.track-option:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+.retry-button:hover {
+  opacity: 0.8;
 }
 
-.track-option.selected {
-  background: #ffea70;
-  color: #000;
-  border-color: #ffea70;
-}
-
+/* Responsividade */
 @media (max-width: 768px) {
+  .player-header {
+    padding: 0.8rem;
+  }
+
   .player-header h2 {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .control-button {
-    font-size: 1rem;
-  }
-
-  .time-display {
-    font-size: 0.8rem;
+    font-size: 1.1rem;
   }
 
   .volume-slider {
     width: 60px;
   }
 
-  .fullscreen-button {
-    margin-left: 0.5rem;
+  .series-info {
+    padding: 0.8rem;
   }
 
-  .track-menu {
-    min-width: 180px;
-  }
-
-  .track-option {
-    padding: 0.4rem;
-    font-size: 0.9rem;
+  .series-description {
+    font-size: 0.85rem;
   }
 }
 
 @media (max-width: 480px) {
+  .player-header {
+    padding: 0.5rem;
+  }
+
   .player-header h2 {
-    font-size: 0.9rem;
+    font-size: 1rem;
+  }
+
+  .control-buttons {
+    gap: 0.5rem;
   }
 
   .control-button {
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
 
-  .time-display {
-    font-size: 0.75rem;
+  .volume-control {
+    display: none;
   }
 
-  .volume-slider {
-    width: 40px;
+  .series-info {
+    padding: 0.5rem;
   }
 
-  .fullscreen-button {
-    margin-left: 0.25rem;
-  }
-
-  .track-menu {
-    min-width: 160px;
-  }
-
-  .track-option {
-    padding: 0.3rem;
+  .series-description {
     font-size: 0.8rem;
+  }
+
+  .series-year,
+  .series-genre {
+    font-size: 0.75rem;
   }
 }
 
@@ -378,13 +311,11 @@
     opacity: 1;
   }
 
-  .control-button:hover,
-  .close-button:hover {
-    transform: none;
+  .control-button:hover {
+    opacity: 1;
   }
 
-  .control-button:active,
-  .close-button:active {
+  .control-button:active {
     opacity: 0.7;
   }
 }

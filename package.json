@@ -15,7 +15,7 @@
     "bootstrap": "^5.3.6",
     "gradle": "^1.2.4",
     "hls": "^0.0.1",
-    "hls.js": "^1.6.2",
+    "hls.js": "^1.4.12",
     "intersection-observer": "^0.12.2",
     "lodash.memoize": "^4.1.2",
     "react": "^19.1.0",
@@ -57,6 +57,7 @@
     ]
   },
   "devDependencies": {
+    "html-webpack-plugin": "^5.6.3",
     "video.js": "^8.22.0"
   }
 }
