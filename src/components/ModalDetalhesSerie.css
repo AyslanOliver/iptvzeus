@@ -159,33 +159,61 @@
   gap: 12px;
 }
 
-.episodio-item {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 16px;
+.episode-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #333;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.episode-item:hover {
+  background-color: #2a2a2a;
+}
+
+.episode-item.watched {
+  background-color: rgba(0, 255, 0, 0.1);
+  border-left: 4px solid #00ff00;
+}
+
+.episode-item.watched .watch-button {
+  background-color: #00ff00;
+  color: #000;
+}
+
+.episode-info {
+  flex: 1;
+}
+
+.episode-info h4 {
+  margin: 0 0 5px 0;
+  color: #fff;
+}
+
+.episode-info p {
+  margin: 0;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.watch-button {
+  padding: 8px 16px;
+  background-color: #ffea70;
+  color: #000;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.episodio-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateX(4px);
+.watch-button:hover {
+  background-color: #ffd700;
 }
 
-.episodio-info h4 {
-  margin: 0 0 4px 0;
-  color: #4fc3f7;
-  font-size: 1.1rem;
-}
-
-.episodio-info p {
-  margin: 0;
-  color: #e0e0e0;
-  font-size: 0.9rem;
+.episode-item.watched .watch-button:hover {
+  background-color: #00cc00;
 }
 
 .assistir-btn {
@@ -246,7 +274,7 @@
     font-size: 1.4rem;
   }
 
-  .episodio-item {
+  .episode-item {
     flex-direction: column;
     gap: 12px;
     text-align: center;

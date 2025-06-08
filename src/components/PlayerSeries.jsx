@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js/dist/hls.min.js';
-import { FaPlay, FaPause, FaForward, FaBackward, FaStepForward, FaTimes } from 'react-icons/fa';
+import { FaPlay, FaPause, FaForward, FaBackward, FaStepForward, FaTimes, FaVolumeUp, FaVolumeMute, FaExpand, FaCompress, FaClosedCaptioning, FaLanguage } from 'react-icons/fa';
 import './PlayerSeries.css';
 
-const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode }) => {
+const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode, onProgressUpdate, initialProgress = 0 }) => {
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
   const hlsRef = useRef(null);
+  const [Hls, setHls] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -14,21 +15,63 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
   const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [availableTracks, setAvailableTracks] = useState({ audio: [], subtitles: [] });
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(null);
+  const [showTrackMenu, setShowTrackMenu] = useState(false);
+  const [trackMenuType, setTrackMenuType] = useState(null); // 'audio' ou 'subtitles'
   const controlsTimeoutRef = useRef(null);
   const playPromiseRef = useRef(null);
   const abortControllerRef = useRef(new AbortController());
+  const [progress, setProgress] = useState(initialProgress);
 
   // Função para formatar o tempo
   const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return hours > 0 
+      ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      : `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   // Função para atualizar o tempo atual
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      const currentTime = videoRef.current.currentTime;
+      const duration = videoRef.current.duration;
+      
+      if (duration > 0) {
+        const currentProgress = (currentTime / duration) * 100;
+        setCurrentTime(currentTime);
+        setProgress(currentProgress);
+        
+        // Salvar o progresso no localStorage
+        const progressData = {
+          time: currentTime,
+          progress: currentProgress,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(`progress_${episodio.id}`, JSON.stringify(progressData));
+        
+        // Notificar o componente pai sobre o progresso
+        onProgressUpdate(episodio.id, currentProgress);
+      }
+    }
+  };
+
+  // Função para lidar com o clique na barra de progresso
+  const handleProgressBarClick = (e) => {
+    if (videoRef.current) {
+      const progressBar = e.currentTarget;
+      const rect = progressBar.getBoundingClientRect();
+      const clickPosition = (e.clientX - rect.left) / rect.width;
+      const newTime = clickPosition * videoRef.current.duration;
+      
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      setProgress(clickPosition * 100);
     }
   };
 
@@ -36,6 +79,59 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
   const handleDurationChange = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+    }
+  };
+
+  // Função para carregar faixas de áudio e legendas
+  const loadTracks = () => {
+    if (videoRef.current) {
+      const audioTracks = Array.from(videoRef.current.audioTracks || []);
+      const textTracks = Array.from(videoRef.current.textTracks || []);
+
+      setAvailableTracks({
+        audio: audioTracks.map(track => ({
+          id: track.id,
+          label: track.label || `Áudio ${track.language || 'Desconhecido'}`,
+          language: track.language,
+          kind: track.kind
+        })),
+        subtitles: textTracks.map(track => ({
+          id: track.id,
+          label: track.label || `Legenda ${track.language || 'Desconhecido'}`,
+          language: track.language,
+          kind: track.kind
+        }))
+      });
+
+      // Selecionar primeira faixa de áudio por padrão
+      if (audioTracks.length > 0) {
+        setSelectedAudioTrack(audioTracks[0].id);
+      }
+
+      // Desativar legendas por padrão
+      setSelectedSubtitleTrack('off');
+    }
+  };
+
+  // Função para mudar faixa de áudio
+  const changeAudioTrack = (trackId) => {
+    if (videoRef.current) {
+      const audioTracks = videoRef.current.audioTracks;
+      for (let i = 0; i < audioTracks.length; i++) {
+        audioTracks[i].enabled = audioTracks[i].id === trackId;
+      }
+      setSelectedAudioTrack(trackId);
+    }
+  };
+
+  // Função para mudar legenda
+  const changeSubtitleTrack = (trackId) => {
+    if (videoRef.current) {
+      const textTracks = videoRef.current.textTracks;
+      for (let i = 0; i < textTracks.length; i++) {
+        textTracks[i].mode = textTracks[i].id === trackId ? 'showing' : 'hidden';
+      }
+      setSelectedSubtitleTrack(trackId);
     }
   };
 
@@ -82,13 +178,6 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
     }
   };
 
-  // Função para pular abertura
-  const handleSkipIntro = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 90; // Pula para 1:30
-    }
-  };
-
   // Função para controlar o volume
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
@@ -123,13 +212,33 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
   // Função para carregar o vídeo
   const loadVideo = async () => {
     try {
+      if (!Hls) {
+        const HlsModule = await import('hls.js');
+        setHls(HlsModule.default);
+        return; // Retorna e espera o próximo ciclo para carregar o vídeo
+      }
+
       const user = JSON.parse(localStorage.getItem('iptvUser'));
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
 
+      if (!episodio || !episodio.id) {
+        throw new Error('Episódio inválido');
+      }
+
+      // Carregar progresso salvo
+      const savedProgress = localStorage.getItem(`progress_${episodio.id}`);
+      let savedTime = 0;
+      if (savedProgress) {
+        const progressData = JSON.parse(savedProgress);
+        savedTime = progressData.time;
+        setProgress(progressData.progress);
+        setCurrentTime(progressData.time);
+      }
+
       // Gera a URL do stream
-      const streamUrl = `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
+      const streamUrl = episodio.url || `http://nxczs.top/series/${user.username}/${user.password}/${episodio.id}.mp4`;
       console.log('URL do stream:', streamUrl);
 
       // Verifica a extensão do arquivo para decidir o método de reprodução
@@ -139,151 +248,74 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
       // Limpa a fonte anterior antes de definir a nova
       if (videoRef.current) {
         videoRef.current.removeAttribute('src');
-        videoRef.current.load(); // Recarrega para limpar o estado anterior
+        videoRef.current.load();
       }
 
       if (isHls && Hls.isSupported()) {
-        // Usar HLS.js para streams HLS
-        console.log('Tentando reproduzir com HLS.js');
         const hls = new Hls({
           xhrSetup: (xhr) => {
             xhr.withCredentials = false;
           },
           maxBufferLength: 30,
           maxMaxBufferLength: 60,
-          maxBufferSize: 60 * 1000 * 1000,
-          maxBufferHole: 0.5,
-          lowLatencyMode: true,
-          debug: true,
-          manifestLoadingTimeOut: 20000,
-          manifestLoadingMaxRetry: 6,
-          manifestLoadingRetryDelay: 1000,
-          levelLoadingTimeOut: 20000,
-          levelLoadingMaxRetry: 6,
-          levelLoadingRetryDelay: 1000,
-          fragLoadingTimeOut: 20000,
-          fragLoadingMaxRetry: 6,
-          fragLoadingRetryDelay: 1000
-        });
-
-        hls.loadSource(streamUrl);
-        hls.attachMedia(videoRef.current);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, async () => {
-          console.log('Manifesto carregado');
-          try {
-            // Cancela qualquer reprodução anterior
-            if (playPromiseRef.current) {
-              try {
-                await playPromiseRef.current;
-              } catch (e) {
-                // Ignora erros de reprodução anterior
-              }
-            }
-            
-            playPromiseRef.current = videoRef.current.play();
-            await playPromiseRef.current;
-            setIsPlaying(true);
-            setIsLoading(false);
-          } catch (err) {
-            console.error('Erro ao iniciar reprodução:', err);
-            setError('Erro ao iniciar a reprodução. Por favor, tente novamente.');
-          } finally {
-            playPromiseRef.current = null;
-          }
-        });
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('Erro HLS:', event, data);
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.error('Erro de rede:', data);
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.error('Erro de mídia:', data);
-                hls.recoverMediaError();
-                break;
-              default:
-                console.error('Erro fatal:', data);
-                hls.destroy();
-                setError('Erro ao reproduzir o vídeo. Por favor, tente novamente.');
-                break;
-            }
-          }
         });
 
         hlsRef.current = hls;
-      } else if (!isHls && canPlayMp4Natively !== '') {
-        // Usar player nativo para outros formatos (como MP4) se o navegador indicar suporte
-        console.log('Tentando reproduzir com player nativo (MP4)');
-        videoRef.current.src = streamUrl;
-        // Espera pelo evento loadedmetadata antes de tentar dar play
-        videoRef.current.addEventListener('loadedmetadata', async () => {
-           console.log('Metadados do vídeo carregados (Native Player)');
-           try {
-             // Cancela qualquer reprodução anterior
-             if (playPromiseRef.current) {
-               try {
-                 await playPromiseRef.current;
-               } catch (e) {
-                 // Ignora erros de reprodução anterior
-               }
-             }
+        hls.loadSource(streamUrl);
+        hls.attachMedia(videoRef.current);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (savedTime > 0) {
+            videoRef.current.currentTime = savedTime;
+          }
+          videoRef.current.play().catch(err => {
+            console.error('Erro ao iniciar reprodução:', err);
+            setError('Erro ao iniciar a reprodução. Tente novamente.');
+          });
+        });
 
-             playPromiseRef.current = videoRef.current.play();
-             await playPromiseRef.current;
-             setIsPlaying(true);
-             setIsLoading(false);
-             console.log('Reprodução nativa iniciada com sucesso');
-           } catch (err) {
-             console.error('Erro ao iniciar reprodução (Native Player):', err);
-             setError('Erro ao iniciar a reprodução nativa. Tente novamente.');
-           } finally {
-             playPromiseRef.current = null;
-           }
-        }, { once: true }); // Usar once: true para remover o listener após o disparo
-
-      } else if (isHls && videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
-        // Fallback nativo do Safari para HLS
-        console.log('Tentando reproduzir com Native HLS Fallback');
-        videoRef.current.src = streamUrl;
-        videoRef.current.addEventListener('loadedmetadata', async () => {
-          console.log('Metadados do vídeo carregados (Native HLS Fallback)');
-          try {
-            // Cancela qualquer reprodução anterior
-            if (playPromiseRef.current) {
-              try {
-                await playPromiseRef.current;
-              } catch (e) {
-                // Ignora erros de reprodução anterior
-              }
-            }
-
-            playPromiseRef.current = videoRef.current.play();
-            await playPromiseRef.current;
-            setIsPlaying(true);
-            setIsLoading(false);
-          } catch (err) {
-            console.error('Erro ao iniciar reprodução (Native HLS Fallback):', err);
-            setError('Erro ao iniciar a reprodução. Por favor, tente novamente.');
-          } finally {
-            playPromiseRef.current = null;
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            console.error('Erro fatal no HLS:', data);
+            setError('Erro ao carregar o vídeo. Tente novamente.');
           }
         });
+      } else if (canPlayMp4Natively) {
+        videoRef.current.src = streamUrl;
+        if (savedTime > 0) {
+          videoRef.current.currentTime = savedTime;
+        }
+        videoRef.current.play().catch(err => {
+          console.error('Erro ao iniciar reprodução:', err);
+          setError('Erro ao iniciar a reprodução. Tente novamente.');
+        });
       } else {
-        setError('Seu navegador não suporta a reprodução deste tipo de vídeo.');
+        throw new Error('Formato de vídeo não suportado');
       }
-    } catch (err) {
-      console.error('Erro ao carregar stream:', err);
-      setError('Erro ao carregar o vídeo. Por favor, tente novamente.');
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Erro ao carregar vídeo:', error);
+      setError(error.message || 'Erro ao carregar o vídeo');
+      setIsLoading(false);
     }
   };
 
-  // Efeito para carregar o vídeo quando o componente montar
+  // Função para alternar tela inteira
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(err => {
+        console.error(`Erro ao entrar em tela inteira: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  // Efeito para carregar o vídeo quando o componente montar ou quando Hls mudar
   useEffect(() => {
-    if (serie && episodio) {
+    const abortController = abortControllerRef.current;
+    
+    if (serie && episodio && Hls) {
       loadVideo();
     }
 
@@ -294,11 +326,11 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
       if (playPromiseRef.current) {
         playPromiseRef.current.catch(() => {}); // Ignora erros de reprodução ao desmontar
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (abortController) {
+        abortController.abort();
       }
     };
-  }, [serie, episodio]);
+  }, [serie, episodio, Hls, loadVideo]);
 
   // Efeito para lidar com a tecla ESC
   useEffect(() => {
@@ -312,6 +344,58 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
     return () => document.removeEventListener('keydown', handleEscKey);
   }, [onClose]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+      if (initialProgress > 0) {
+        video.currentTime = (initialProgress / 100) * video.duration;
+      }
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [episodio.id, initialProgress]);
+
+  // Efeito para monitorar mudanças no estado de tela inteira
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Efeito para salvar o progresso periodicamente
+  useEffect(() => {
+    const saveProgressInterval = setInterval(() => {
+      if (videoRef.current && videoRef.current.duration > 0) {
+        const currentTime = videoRef.current.currentTime;
+        const duration = videoRef.current.duration;
+        const currentProgress = (currentTime / duration) * 100;
+        
+        const progressData = {
+          time: currentTime,
+          progress: currentProgress,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(`progress_${episodio.id}`, JSON.stringify(progressData));
+      }
+    }, 1000); // Salva a cada segundo
+
+    return () => {
+      clearInterval(saveProgressInterval);
+    };
+  }, [episodio.id]);
+
   if (error) {
     return (
       <div className="player-container">
@@ -324,7 +408,7 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
   }
 
   return (
-    <div className="player-container" onMouseMove={handleMouseMove}>
+    <div className="player-container" onMouseMove={handleMouseMove} ref={containerRef}>
       {isLoading && (
         <div className="player-loading">
           <div className="spinner"></div>
@@ -332,23 +416,41 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
         </div>
       )}
 
-      <video
-        ref={videoRef}
-        className="player-video"
-        playsInline
-        onTimeUpdate={handleTimeUpdate}
-        onDurationChange={handleDurationChange}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)}
-      />
+      <div className="player-header">
+        <h2>{serie.name} - {episodio.title || `Episódio ${episodio.episode_num}`}</h2>
+        <button className="close-button" onClick={onClose}>
+          <FaTimes />
+        </button>
+      </div>
+
+      <div className="video-container">
+        <video
+          ref={videoRef}
+          className="video-player"
+          playsInline
+          onTimeUpdate={handleTimeUpdate}
+          onDurationChange={handleDurationChange}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+          onLoadedMetadata={loadTracks}
+        />
+      </div>
 
       <div className={`player-controls ${showControls ? 'visible' : 'hidden'}`}>
-        <div className="progress-bar">
+        <div className="progress-container">
           <div 
-            className="progress-filled"
-            style={{ width: `${(currentTime / duration) * 100}%` }}
-          />
+            className="progress-bar"
+            onClick={handleProgressBarClick}
+          >
+            <div 
+              className="progress-fill"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="time-display">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
         </div>
 
         <div className="control-buttons">
@@ -361,10 +463,10 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
           <button onClick={handleForward} className="control-button">
             <FaForward />
           </button>
-          <button onClick={handleSkipIntro} className="control-button skip-intro">
-            Pular Abertura
-          </button>
           <div className="volume-control">
+            <button onClick={toggleMute} className="control-button">
+              {isMuted ? <FaVolumeMute /> : <FaVolumeUp />}
+            </button>
             <input
               type="range"
               min="0"
@@ -375,38 +477,92 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode 
               className="volume-slider"
             />
           </div>
-          <div className="time-display">
-            {formatTime(currentTime)} / {formatTime(duration)}
+          <div className="track-controls">
+            <button 
+              className="control-button"
+              onClick={() => {
+                setTrackMenuType('audio');
+                setShowTrackMenu(!showTrackMenu);
+              }}
+            >
+              <FaLanguage />
+            </button>
+            <button 
+              className="control-button"
+              onClick={() => {
+                setTrackMenuType('subtitles');
+                setShowTrackMenu(!showTrackMenu);
+              }}
+            >
+              <FaClosedCaptioning />
+            </button>
           </div>
-        </div>
-      </div>
-
-      <div className="player-info">
-        <div className="player-title">
-          <h2>{serie.name}</h2>
-          <h3>{episodio.title || `Episódio ${episodio.episode_num}`}</h3>
-        </div>
-        <div className="player-actions">
           {episodios && episodios.length > 0 && (
             <button
-              className="player-next"
+              className="control-button"
               onClick={() => {
                 const idx = episodios.findIndex(ep => ep.id === episodio.id);
                 if (idx !== -1 && idx < episodios.length - 1) {
-                  const proximoEpisodio = episodios[idx + 1];
-                  console.log('Próximo episódio:', proximoEpisodio);
-                  onNextEpisode(proximoEpisodio);
+                  onNextEpisode(episodios[idx + 1]);
                 }
               }}
               disabled={episodios.findIndex(ep => ep.id === episodio.id) === episodios.length - 1}
             >
-              <FaStepForward /> Próximo
+              <FaStepForward />
             </button>
           )}
-          <button className="player-close" onClick={onClose}>
-            <FaTimes /> Fechar
+          <button onClick={toggleFullscreen} className="control-button fullscreen-button">
+            {isFullscreen ? <FaCompress /> : <FaExpand />}
           </button>
         </div>
+
+        {showTrackMenu && (
+          <div className="track-menu">
+            <h3>{trackMenuType === 'audio' ? 'Áudio' : 'Legendas'}</h3>
+            <div className="track-options">
+              {trackMenuType === 'audio' ? (
+                <>
+                  {availableTracks.audio.map(track => (
+                    <button
+                      key={track.id}
+                      className={`track-option ${selectedAudioTrack === track.id ? 'selected' : ''}`}
+                      onClick={() => {
+                        changeAudioTrack(track.id);
+                        setShowTrackMenu(false);
+                      }}
+                    >
+                      {track.label}
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <button
+                    className={`track-option ${selectedSubtitleTrack === 'off' ? 'selected' : ''}`}
+                    onClick={() => {
+                      changeSubtitleTrack('off');
+                      setShowTrackMenu(false);
+                    }}
+                  >
+                    Desativado
+                  </button>
+                  {availableTracks.subtitles.map(track => (
+                    <button
+                      key={track.id}
+                      className={`track-option ${selectedSubtitleTrack === track.id ? 'selected' : ''}`}
+                      onClick={() => {
+                        changeSubtitleTrack(track.id);
+                        setShowTrackMenu(false);
+                      }}
+                    >
+                      {track.label}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

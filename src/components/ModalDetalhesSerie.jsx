@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import './ModalDetalhesSerie.css';
+import { FaStar, FaRegStar } from 'react-icons/fa';
 
-const ModalDetalhesSerie = ({ serie, onClose, onAssistir }) => {
+const ModalDetalhesSerie = ({ serie, onClose, onAssistir, isFavorite, onToggleFavorite, isEpisodeWatched }) => {
   const [epgInfo, setEpgInfo] = useState(null);
   const [isLoadingEpg, setIsLoadingEpg] = useState(true);
   const [episodes, setEpisodes] = useState([]);
@@ -12,7 +13,18 @@ const ModalDetalhesSerie = ({ serie, onClose, onAssistir }) => {
   }, [onClose]);
 
   const handleAssistirClick = useCallback((episodio) => {
-    onAssistir(serie, episodio);
+    const episodioCompleto = {
+      id: episodio.id,
+      title: episodio.title || `Episódio ${episodio.episode_num}`,
+      name: episodio.title || `Episódio ${episodio.episode_num}`,
+      episode_num: episodio.episode_num,
+      season: episodio.season,
+      info: episodio.info || 'Sem descrição disponível',
+      duration: episodio.duration || '0',
+      duration_secs: episodio.duration_secs || '0',
+      bitrate: episodio.bitrate || '0'
+    };
+    onAssistir(serie, episodioCompleto);
   }, [serie, onAssistir]);
 
   useEffect(() => {
@@ -95,84 +107,54 @@ const ModalDetalhesSerie = ({ serie, onClose, onAssistir }) => {
   const filteredEpisodes = episodes.filter(ep => ep.season === selectedSeason);
 
   return (
-    <div className="modal-detalhes-serie-overlay">
-      <div className="modal-detalhes-serie">
-        <button className="modal-fechar" onClick={handleClose}>×</button>
-        
-        <div className="modal-conteudo">
-          <div className="modal-imagem">
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>{serie.name}</h2>
+          <button className="close-button" onClick={handleClose}>&times;</button>
+        </div>
+        <div className="modal-body">
+          <div className="serie-info">
             <img 
-              src={serie.cover} 
-              alt={serie.name}
+              src={serie.cover || 'https://via.placeholder.com/200x300?text=Sem+Imagem'} 
+              alt={serie.name} 
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = '/placeholder.jpg';
+                e.target.src = 'https://via.placeholder.com/200x300?text=Sem+Imagem';
               }}
             />
+            <div className="serie-details">
+              <p>{serie.plot || 'Sem descrição disponível'}</p>
+              <p>Ano: {serie.year || 'N/A'}</p>
+              <p>Gênero: {serie.genre || 'N/A'}</p>
+              <button 
+                className={`favorite-button ${isFavorite ? 'active' : ''}`}
+                onClick={onToggleFavorite}
+              >
+                {isFavorite ? <FaStar /> : <FaRegStar />}
+                {isFavorite ? 'Remover dos Favoritos' : 'Adicionar aos Favoritos'}
+              </button>
+            </div>
           </div>
-          
-          <div className="modal-info">
-            <h2>{serie.name}</h2>
-            
-            {epgInfo && (
-              <>
-                {epgInfo.category && (
-                  <div className="info-item">
-                    <strong>Gênero:</strong> {epgInfo.category}
-                  </div>
-                )}
-                {epgInfo.director && (
-                  <div className="info-item">
-                    <strong>Diretor:</strong> {epgInfo.director}
-                  </div>
-                )}
-                {epgInfo.cast && (
-                  <div className="info-item">
-                    <strong>Elenco:</strong> {epgInfo.cast}
-                  </div>
-                )}
-                {epgInfo.description && (
-                  <div className="modal-sinopse">
-                    <h3>Sinopse</h3>
-                    <p>{epgInfo.description}</p>
-                  </div>
-                )}
-              </>
-            )}
-
-            <div className="temporadas">
-              <h3>Temporadas</h3>
-              <div className="temporadas-selector">
-                {Array.from(new Set(episodes.map(ep => ep.season))).sort((a, b) => a - b).map(season => (
-                  <button
-                    key={season}
-                    className={`temporada-btn ${selectedSeason === season ? 'active' : ''}`}
-                    onClick={() => setSelectedSeason(season)}
-                  >
-                    Temporada {season}
+          <div className="episodes-list">
+            <h3>Episódios</h3>
+            {filteredEpisodes.sort((a, b) => a.episode_num - b.episode_num).map((episodio) => (
+              <div 
+                key={episodio.id} 
+                className={`episode-item ${isEpisodeWatched(episodio.id) ? 'watched' : ''}`}
+                onClick={() => handleAssistirClick(episodio)}
+              >
+                <div className="episode-info">
+                  <h4>{episodio.title || `Episódio ${episodio.episode_num}`}</h4>
+                  <p>{episodio.info || 'Sem descrição disponível'}</p>
+                </div>
+                <div className="episode-actions">
+                  <button className="watch-button">
+                    {isEpisodeWatched(episodio.id) ? 'Assistido' : 'Assistir'}
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
-
-            <div className="episodios">
-              <h3>Episódios</h3>
-              <div className="episodios-lista">
-                {filteredEpisodes.sort((a, b) => a.episode_num - b.episode_num).map((episodio) => (
-                  <div
-                    key={episodio.id}
-                    className="episodio-item"
-                    onClick={() => handleAssistirClick(episodio)}
-                  >
-                    <div className="episodio-info">
-                      <h4>Episódio {episodio.episode_num}</h4>
-                      <p>{episodio.title}</p>
-                    </div>
-                    <button className="assistir-btn">Assistir</button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
