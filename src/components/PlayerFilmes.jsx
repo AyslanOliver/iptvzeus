@@ -256,7 +256,7 @@ const PlayerFilmes = ({ movie, autoPlay = true, onReady, onClose }) => {
         <button onClick={onClose} className="close-button" aria-label="Fechar player">&times;</button>
       </div>
   
-      <div className="player-wrapper">
+      <div className="video-container">
         {isLoading && (
           <div className="player-loading">
             <div className="spinner"></div>

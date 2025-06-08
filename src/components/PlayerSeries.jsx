@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { FaPlay, FaPause, FaForward, FaBackward, FaStepForward, FaTimes, FaVolumeUp, FaVolumeMute, FaExpand, FaCompress, FaClosedCaptioning, FaLanguage } from 'react-icons/fa';
+import Hls from 'hls.js';
 import './PlayerSeries.css';
 
 const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode, onProgressUpdate, initialProgress = 0 }) => {
@@ -209,22 +210,16 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
     }, 3000);
   };
 
-  // Função para carregar o vídeo
-  const loadVideo = async () => {
-    try {
-      if (!Hls) {
-        const HlsModule = await import('hls.js');
-        setHls(HlsModule.default);
-        return; // Retorna e espera o próximo ciclo para carregar o vídeo
-      }
+  const loadVideo = useCallback(async () => {
+    if (!episodio || !episodio.id) return;
 
+    setIsLoading(true);
+    setError(null);
+
+    try {
       const user = JSON.parse(localStorage.getItem('iptvUser'));
       if (!user) {
         throw new Error('Usuário não autenticado');
-      }
-
-      if (!episodio || !episodio.id) {
-        throw new Error('Episódio inválido');
       }
 
       // Carregar progresso salvo
@@ -298,7 +293,7 @@ const PlayerSeries = ({ serie, episodio, onClose, episodios = [], onNextEpisode,
       setError(error.message || 'Erro ao carregar o vídeo');
       setIsLoading(false);
     }
-  };
+  }, [episodio, Hls]);
 
   // Função para alternar tela inteira
   const toggleFullscreen = () => {
